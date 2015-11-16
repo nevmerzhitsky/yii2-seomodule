@@ -1,0 +1,29 @@
+{
+    "name": "nevmerzhitsky/yii2-seomodule",
+    "description": "SEO-oriented functional for models and controllers",
+    "keywords": ["seo", "yii2"],
+    "homepage": "htptshttps://github.com/nevmerzhitsky/yii2-seomodule#readme",
+    "type": "yii2-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sergey Nevmerzhitsky",
+            "email": "sergey.nevmerzhitsky@gmail.com",
+            "homepage": "http://nevmerzhitsky.ru/",
+            "role": "Creator"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/nevmerzhitsky/yii2-seomodule/issues",
+        "source": "https://github.com/nevmerzhitsky/yii2-seomodule"
+    },
+    "require": {
+        "php": ">=5.6.0",
+        "yiisoft/yii2": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "demi\\seo\\": ""
+        }
+    }
+}
