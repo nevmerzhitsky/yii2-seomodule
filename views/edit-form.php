@@ -8,17 +8,9 @@ use yii\widgets\ActiveForm;
 
 $seo = $model->getBehavior('seo');
 
-if (empty($seo)) {
+if (empty($seo) || !$seo->userCanEdit) {
     return;
 }
-
-// If the parameters can not be edited manually - it means nothing to
-// display them in the form of
-if (!$seo->clientChange) {
-    return;
-}
-
-echo '<hr />';
 ?>
 <fieldset>
     <legend>SEO-oriented settings</legend>

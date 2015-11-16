@@ -64,7 +64,7 @@ class SeoModelBehavior extends Behavior {
     public $metaField;
 
     /** @var boolean|callable Whether to allow the user to change the SEO-data */
-    public $clientChange = true;
+    public $userCanEdit = true;
 
     /** @var integer The maximum length of the field SEO:url */
     private $_maxUrlLength = 70;
@@ -144,8 +144,8 @@ class SeoModelBehavior extends Behavior {
             ];
         }
         // if the current user can see and edit SEO-data model
-        if (is_callable($this->clientChange)) {
-            $this->clientChange = call_user_func($this->clientChange, $owner);
+        if (is_callable($this->userCanEdit)) {
+            $this->userCanEdit = call_user_func($this->userCanEdit, $owner);
         }
 
         // Determine the controller and add it actions to the seo url stop list

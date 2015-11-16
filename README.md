@@ -51,7 +51,7 @@ public function behaviors()
                         return $model->title . ', tag1, tag2';
                     },
                 'metaField' => 'seo_meta',
-                'clientChange' => Yii::$app->has('user') && Yii::$app->user->can(User::ROLE_ADMIN),
+                'userCanEdit' => Yii::$app->has('user') && Yii::$app->user->can(User::ROLE_ADMIN),
                 // 'languages' => 'ru',
                 'urlField' => 'seo_url',
                 'urlProduceField' => 'title',
