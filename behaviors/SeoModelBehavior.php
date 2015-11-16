@@ -87,19 +87,6 @@ class SeoModelBehavior extends Behavior {
         'index'
     ];
 
-    /** @var string SEO route for creating link, example "post/view" */
-    private $_viewRoute = '';
-
-    /**
-     *
-     * @var string Parameter name, which will be given SEO:url in the creation
-     *      of link
-     */
-    private $_linkTitleParamName = 'title';
-
-    /** @var array|callable additional parameters SEO:url to create a link */
-    private $_additionalLinkParams = [];
-
     /** @var array List of languages that should be available to SEO-options */
     public $languages = [];
 
@@ -116,14 +103,6 @@ class SeoModelBehavior extends Behavior {
 
     /** @var Query Additional criteria when checking the uniqueness of seo_url */
     private $_uniqueUrlFilter;
-
-    /**
-     *
-     * @var string Regular expression to verify that the request goes to bypass
-     *      seo_url.
-     *      search string - Yii::app()->request->pathInfo
-     */
-    private $_checkSeoUrlRegexp = '';
 
     /** @var string encoding site */
     private $_encoding = 'UTF-8';
@@ -167,12 +146,6 @@ class SeoModelBehavior extends Behavior {
         // if the current user can see and edit SEO-data model
         if (is_callable($this->clientChange)) {
             $this->clientChange = call_user_func($this->clientChange, $owner);
-        }
-
-        // If the route to create a seo url link to view model is not specified
-        // - generate it
-        if (empty($this->_viewRoute)) {
-            $this->_viewRoute = strtolower(basename(get_class($owner))) . '/view';
         }
 
         // Determine the controller and add it actions to the seo url stop list
@@ -455,67 +428,6 @@ class SeoModelBehavior extends Behavior {
     }
 
     /**
-     * Returns the URL to the page viewing for current model-owner
-     *
-     * @param string $title
-     *            SEO:title for the url, use only if the reference is
-     *            not generated from the model, and externally
-     * @param string $anchor
-     *            #Anchor, which is added to the url ($title can be
-     *            set to NULL)
-     * @param boolean $abs
-     *            Need a absolute link ($title and $anchor can be set
-     *            to NULL)
-     *
-     * @return string
-     */
-    public function getViewUrl ($title = null, $anchor = null, $abs = false) {
-        // If additional link parameters should be generated - do generate
-        if (is_callable($this->_additionalLinkParams)) {
-            $this->_additionalLinkParams = call_user_func($this->_additionalLinkParams,
-                $this->owner);
-        }
-
-        // If the model does not have SEO: url, then the value of this field
-        // will be used by the Model ID
-        if (empty($this->urlField) && empty($title)) {
-            $title = $this->owner->getPrimaryKey();
-        }
-
-        // Add the parameter that is responsible for displaying SEO:url
-        $params = [
-            $this->_linkTitleParamName => !empty($title) ? $title : $this->owner->{$this->urlField}
-        ];
-
-        // Adding anchor
-        if (!empty($anchor)) {
-            $params['#'] = $anchor;
-        }
-
-        return Url::to(
-            array_merge([
-                $this->_viewRoute
-            ], array_merge($params, $this->_additionalLinkParams)), $abs);
-    }
-
-    /**
-     * Returns the absolute URL to the page view model-owner
-     *
-     * @param string $title
-     *            SEO:title for the url, use only if the reference is
-     *            not generated from the model, and externally
-     * @param string $anchor
-     *            Якорь, который добвится к url, а $title можно
-     *            указать как NULL#Anchor, which is added to the url ($title can be
-     *            set to NULL)
-     *
-     * @return string
-     */
-    public function getAbsoluteViewUrl ($title = null, $anchor = null) {
-        return $this->getViewUrl($title, $anchor, true);
-    }
-
-    /**
      * Returns the generated value for the meta-fields
      *
      * @param callable|string $produceFunc
@@ -542,21 +454,6 @@ class SeoModelBehavior extends Behavior {
         Yii::$app->language = $originalLanguage;
 
         return $value;
-    }
-
-    /**
-     * Verifies that only correct seo_url is used for current url
-     *
-     * @return boolean true if all is well, otherwise occurs 301 redirect to the
-     *         correct URL
-     */
-    public function checkSeoUrl () {
-        if (!empty($this->check_seo_url_regexp) && preg_match($this->_checkSeoUrlRegexp,
-            Yii::$app->request->pathInfo)) {
-            Yii::$app->response->redirect($this->getViewUrl(), 301);
-        }
-
-        return true;
     }
 
     /**

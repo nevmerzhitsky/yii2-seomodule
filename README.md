@@ -54,12 +54,6 @@ public function behaviors()
                     },
                 'metaField' => 'seo_meta',
                 'clientChange' => Yii::$app->has('user') && Yii::$app->user->can(User::ROLE_ADMIN),
-                'viewRoute' => '/post/view',
-                'linkTitleParamName' => 'title',
-                'additionalLinkParams' => function ($model) {
-                        /* @var $model self|\yii\db\ActiveRecord */
-                        return ['category' => $model->category->seo_url];
-                    },
                 // 'languages' => 'ru',
                 'controllerClassName' => '\frontend\controllers\PostController',
                 'uniqueUrlFilter' => function ($query) use ($it) {
@@ -78,10 +72,6 @@ PHPdoc for model:
  * @property array $seoData
  * @method array getSeoData($lang = null) Metadata for this model
  * @method \nevmerzhitsky\seomodule\SeoModelBehavior getSeoBehavior()
- * @property array $viewUrl
- * @method array getViewUrl() URL to material view page
- * @property array $absoluteViewUrl
- * @method array getAbsoluteViewUrl() Absolute URL to material view page
  */
 ```
 In main layout:
@@ -105,16 +95,6 @@ Or in a controller:
 ```php
 Yii::$app->view->setSeoData($model->getSeoBehavior());
 Yii::$app->view->setMetaRobots('noindex, nofollow');
-```
-
-Get link to view. Based on behavior config values: `viewRoute` and `additionalLinkParams`
-```php
-// return url to material view page:
-$url = $model->getViewUrl();
-$url = $model->viewUrl;
-// return absolute url to material view page:
-$abs_url = $model->getAbsoluteViewUrl();
-$abs_url = $model->absoluteViewUrl;
 ```
 
 Render SEO:url and SEO:meta fields in the "_form.php" file:
