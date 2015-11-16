@@ -60,7 +60,7 @@ public function behaviors()
                         /* @var $model self|\yii\db\ActiveRecord */
                         return ['category' => $model->category->seo_url];
                     },
-                'languages' => 'ru',
+                // 'languages' => 'ru',
                 'controllerClassName' => '\frontend\controllers\PostController',
                 'uniqueUrlFilter' => function ($query) use ($it) {
                         /* @var $query \yii\db\Query */

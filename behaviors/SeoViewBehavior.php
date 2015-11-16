@@ -78,9 +78,10 @@ class SeoViewBehavior extends Behavior {
 
     /**
      * Render HTML with configured title and meta tags.
-     * All meta tags rendered by calling to $view->registerMetaTag(). And key of
-     * all these tags is "seo-<name>". You can override their values after
-     * calling this method.
+     *
+     * Meta tags rendered by calling to standard $view->registerMetaTag().
+     * And key of these tags is seo-description, seo-keywords and seo-robots.
+     * You can manually override their values after calling this method.
      *
      * @return string
      */
