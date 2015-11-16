@@ -78,6 +78,9 @@ class SeoViewBehavior extends Behavior {
 
     /**
      * Render HTML with configured title and meta tags.
+     * All meta tags rendered by calling to $view->registerMetaTag(). And key of
+     * all these tags is "seo-<name>". You can override their values after
+     * calling this method.
      *
      * @return string
      */
@@ -100,10 +103,10 @@ class SeoViewBehavior extends Behavior {
                 [
                     'name' => $name,
                     'content' => Html::encode($this->_normalizeStr($value))
-                ], "meta-{$name}");
+                ], "seo-{$name}");
         }
 
-        // @TODO Add title template to params.
+        // @TODO Add title template to params of the behaviour.
         if (!empty($this->_pageTitle)) {
             $title = $this->_pageTitle . ' - ' . Yii::$app->name;
         } else {
