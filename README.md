@@ -1,2 +1,3 @@
 # yii2-seomodule
-SEO-oriented functional for models and controllers.
+
+Add ability to edit content of SEO-oriented HTML tags and attributes. Also add ability to confi
