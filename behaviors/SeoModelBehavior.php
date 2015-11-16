@@ -121,6 +121,16 @@ class SeoModelBehavior extends Behavior {
     const DESC_KEY = 'desc';
     const KEYS_KEY = 'keys';
 
+    public static function keyToLabel ($key) {
+        static $map = [
+            self::TITLE_KEY => 'Title',
+            self::DESC_KEY => 'Description',
+            self::KEYS_KEY => 'Keywords'
+        ];
+
+        return $map[$key];
+    }
+
     /** @var array Saved actions of controllers for SEO:url stop list */
     private static $_controllersActions = [];
 

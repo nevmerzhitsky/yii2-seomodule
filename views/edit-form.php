@@ -31,16 +31,16 @@ if (!empty($seo->urlField)) {
         echo Html::activeLabel($model, $seo->urlField);
         echo Html::activeTextInput($model, $seo->urlField);
         echo Html::error($model, $seo->urlField);
-        echo "</div>\n\n";
+        echo '</div>';
     }
 }
 
 foreach ($seo->languages as $lang) {
     foreach ($seo->getMetaFields() as $meta_field_key => $meta_field_generator) {
         $attr = $model->metaField . "[{$meta_field_key}_{$lang}]";
-        $label = 'SEO: ' . $meta_field_key;
+        $label = $seo::keyToLabel($meta_field_key);
         if (count($seo->languages) > 1) {
-            $label .= ' ' . strtoupper($lang);
+            $label .= ' (' . strtoupper($lang) . ')';
         }
         if ($form instanceof ActiveForm) {
             $input = $meta_field_key == $seo::DESC_KEY ? 'textarea' : 'textInput';
@@ -54,7 +54,7 @@ foreach ($seo->languages as $lang) {
                 ]);
             echo Html::$input($model, $attr);
             echo Html::error($model, $attr);
-            echo "</div>\n";
+            echo '</div>';
         }
     }
 }
