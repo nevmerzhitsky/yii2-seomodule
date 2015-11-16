@@ -183,21 +183,30 @@ class SeoModelBehavior extends Behavior {
     public function beforeValidate () {
         $model = $this->owner;
 
+        // Validate meta fields.
         if (!empty($this->metaField)) {
             // Loop through all the languages available, it is often only one
             foreach ($this->languages as $lang) {
-                // Loop through the fields and cut the long strings to set
-                // allowed length
+                // Loop through the fields and cut the long strings to set allowed length
                 foreach ($this->getMetaFields() as $meta_param_key => $meta_param_value_generator) {
                     $this->_applyMaxLength($meta_param_key, $lang);
                 }
             }
         }
 
+        $this->_validateUrlField();
+    }
+
+    /**
+     * Validate SEO URL and ensure its uniqueness.
+     */
+    private function _validateUrlField () {
         if (empty($this->urlField)) {
             // If do not need to work with SEO:url, then skip further work
             return;
         }
+
+        $model = $this->owner;
 
         // Add UNIQUE validator for SEO:url field
         $validator = Validator::createValidator(UniqueValidator::className(), $model,
@@ -461,85 +470,84 @@ class SeoModelBehavior extends Behavior {
      *
      * @param string $title
      * @param int $maxLength
-     * @param bool $to_lower
-     *
+     * @param bool $toLower
      * @return string
      */
-    private function _getSeoName ($title, $maxLength = 255, $to_lower = true) {
+    private function _getSeoName ($title, $maxLength = 255, $toLower = true) {
         $trans = [
-            "а" => "a",
-            "б" => "b",
-            "в" => "v",
-            "г" => "g",
-            "д" => "d",
-            "е" => "e",
-            "ё" => "yo",
-            "ж" => "j",
-            "з" => "z",
-            "и" => "i",
-            "й" => "i",
-            "к" => "k",
-            "л" => "l",
-            "м" => "m",
-            "н" => "n",
-            "о" => "o",
-            "п" => "p",
-            "р" => "r",
-            "с" => "s",
-            "т" => "t",
-            "у" => "y",
-            "ф" => "f",
-            "х" => "h",
-            "ц" => "c",
-            "ч" => "ch",
-            "ш" => "sh",
-            "щ" => "sh",
-            "ы" => "i",
-            "э" => "e",
-            "ю" => "u",
-            "я" => "ya",
-            "А" => "A",
-            "Б" => "B",
-            "В" => "V",
-            "Г" => "G",
-            "Д" => "D",
-            "Е" => "E",
-            "Ё" => "Yo",
-            "Ж" => "J",
-            "З" => "Z",
-            "И" => "I",
-            "Й" => "I",
-            "К" => "K",
-            "Л" => "L",
-            "М" => "M",
-            "Н" => "N",
-            "О" => "O",
-            "П" => "P",
-            "Р" => "R",
-            "С" => "S",
-            "Т" => "T",
-            "У" => "Y",
-            "Ф" => "F",
-            "Х" => "H",
-            "Ц" => "C",
-            "Ч" => "Ch",
-            "Ш" => "Sh",
-            "Щ" => "Sh",
-            "Ы" => "I",
-            "Э" => "E",
-            "Ю" => "U",
-            "Я" => "Ya",
-            "ь" => "",
-            "Ь" => "",
-            "ъ" => "",
-            "Ъ" => ""
+            'а' => 'a',
+            'б' => 'b',
+            'в' => 'v',
+            'г' => 'g',
+            'д' => 'd',
+            'е' => 'e',
+            'ё' => 'yo',
+            'ж' => 'j',
+            'з' => 'z',
+            'и' => 'i',
+            'й' => 'i',
+            'к' => 'k',
+            'л' => 'l',
+            'м' => 'm',
+            'н' => 'n',
+            'о' => 'o',
+            'п' => 'p',
+            'р' => 'r',
+            'с' => 's',
+            'т' => 't',
+            'у' => 'y',
+            'ф' => 'f',
+            'х' => 'h',
+            'ц' => 'c',
+            'ч' => 'ch',
+            'ш' => 'sh',
+            'щ' => 'sh',
+            'ы' => 'i',
+            'э' => 'e',
+            'ю' => 'u',
+            'я' => 'ya',
+            'А' => 'A',
+            'Б' => 'B',
+            'В' => 'V',
+            'Г' => 'G',
+            'Д' => 'D',
+            'Е' => 'E',
+            'Ё' => 'Yo',
+            'Ж' => 'J',
+            'З' => 'Z',
+            'И' => 'I',
+            'Й' => 'I',
+            'К' => 'K',
+            'Л' => 'L',
+            'М' => 'M',
+            'Н' => 'N',
+            'О' => 'O',
+            'П' => 'P',
+            'Р' => 'R',
+            'С' => 'S',
+            'Т' => 'T',
+            'У' => 'Y',
+            'Ф' => 'F',
+            'Х' => 'H',
+            'Ц' => 'C',
+            'Ч' => 'Ch',
+            'Ш' => 'Sh',
+            'Щ' => 'Sh',
+            'Ы' => 'I',
+            'Э' => 'E',
+            'Ю' => 'U',
+            'Я' => 'Ya',
+            'ь' => '',
+            'Ь' => '',
+            'ъ' => '',
+            'Ъ' => ''
         ];
         // Replace the unusable characters on the dashes
         $title = preg_replace('/[^a-zа-яё\d_-]+/isu', '-', $title);
         // Remove dashes from the beginning and end of the line
         $title = trim($title, '-');
         $title = strtr($title, $trans);
-        if ($to_lower) {
+        if ($toLower) {
             $title = mb_strtolower($title, $this->_encoding);
         }
         if (mb_strlen($title, $this->_encoding) > $maxLength) {

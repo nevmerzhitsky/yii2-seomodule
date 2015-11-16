@@ -54,6 +54,7 @@ class SeoViewBehavior extends Behavior {
      */
     public function setSeoData ($title, $desc = '', $keywords = '') {
         $data = $title;
+        // @TODO Get metaRobots from model also.
         if ($title instanceof SeoModelBehavior) {
             $meta = $title->getSeoData();
             $data = [

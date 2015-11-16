@@ -44,8 +44,6 @@ public function behaviors()
         'seo' => [
             'class' => 'nevmerzhitsky\seomodule\SeoModelBehavior',
             'seoConfig' => [
-                'urlField' => 'seo_url',
-                'urlProduceField' => 'title',
                 'titleProduceFunc' => 'title',
                 'descriptionProduceFunc' => 'short_desc',
                 'keysProduceFunc' => function ($model) {
@@ -55,6 +53,8 @@ public function behaviors()
                 'metaField' => 'seo_meta',
                 'clientChange' => Yii::$app->has('user') && Yii::$app->user->can(User::ROLE_ADMIN),
                 // 'languages' => 'ru',
+                'urlField' => 'seo_url',
+                'urlProduceField' => 'title',
                 'controllerClassName' => '\frontend\controllers\PostController',
                 'uniqueUrlFilter' => function ($query) use ($it) {
                         /* @var $query \yii\db\Query */
