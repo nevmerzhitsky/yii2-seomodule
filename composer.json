@@ -2,7 +2,7 @@
     "name": "nevmerzhitsky/yii2-seomodule",
     "description": "SEO-oriented functional for models and controllers",
     "keywords": ["seo", "yii2"],
-    "homepage": "htptshttps://github.com/nevmerzhitsky/yii2-seomodule#readme",
+    "homepage": "https://github.com/nevmerzhitsky/yii2-seomodule#readme",
     "type": "yii2-extension",
     "license": "MIT",
     "authors": [
