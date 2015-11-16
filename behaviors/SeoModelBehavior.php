@@ -9,11 +9,9 @@ use Yii;
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
 use yii\db\Query;
-use yii\helpers\Html;
 use yii\helpers\Url;
 use yii\validators\UniqueValidator;
 use yii\validators\Validator;
-use yii\widgets\ActiveForm;
 
 /**
  * Behavior to work with SEO meta options
@@ -24,7 +22,7 @@ use yii\widgets\ActiveForm;
 class SeoModelBehavior extends Behavior {
 
     /** @var string The name of the field responsible for SEO:url */
-    private $_urlField;
+    public $urlField;
 
     /**
      *
@@ -50,10 +48,10 @@ class SeoModelBehavior extends Behavior {
      * @var string The name of the resulting field, which will be stored in a
      *      serialized form of all SEO-parameters
      */
-    private $_metaField;
+    public $metaField;
 
     /** @var boolean|callable Whether to allow the user to change the SEO-data */
-    private $_clientChange = true;
+    public $clientChange = true;
 
     /** @var integer The maximum length of the field SEO:url */
     private $_maxUrlLength = 70;
@@ -90,7 +88,7 @@ class SeoModelBehavior extends Behavior {
     private $_additionalLinkParams = [];
 
     /** @var array List of languages that should be available to SEO-options */
-    private $_languages = [];
+    public $languages = [];
 
     /**
      *
@@ -119,11 +117,8 @@ class SeoModelBehavior extends Behavior {
 
     /** @var array Array configuration that overrides the above settings */
     public $seoConfig = [];
-
     const TITLE_KEY = 'title';
-
     const DESC_KEY = 'desc';
-
     const KEYS_KEY = 'keys';
 
     /** @var array Saved actions of controllers for SEO:url stop list */
@@ -142,21 +137,26 @@ class SeoModelBehavior extends Behavior {
 
         // Apply the configuration options
         foreach ($this->seoConfig as $key => $value) {
-            $var = '_' . $key;
+            if ($this->hasProperty($key)) {
+                $var = $key;
+            } else {
+                $var = '_' . $key;
+            }
+
             $this->$var = $value;
         }
 
-        $this->_languages = (array) $this->_languages;
+        $this->languages = (array) $this->languages;
         // If there was not passed any language - we use only one system
         // language
-        if (!count($this->_languages)) {
-            $this->_languages = [
+        if (!count($this->languages)) {
+            $this->languages = [
                 Yii::$app->language
             ];
         }
         // if the current user can see and edit SEO-data model
-        if (is_callable($this->_clientChange)) {
-            $this->_clientChange = call_user_func($this->_clientChange, $owner);
+        if (is_callable($this->clientChange)) {
+            $this->clientChange = call_user_func($this->clientChange, $owner);
         }
 
         // If the route to create a seo url link to view model is not specified
@@ -166,7 +166,7 @@ class SeoModelBehavior extends Behavior {
         }
 
         // Determine the controller and add it actions to the seo url stop list
-        if (!empty($this->_urlField) && !empty($this->_controllerClassName)) {
+        if (!empty($this->urlField) && !empty($this->_controllerClassName)) {
             if (isset(static::$_controllersActions[$this->_controllerClassName])) {
                 // Obtain the previously defined controller actions
                 $buffer = static::$_controllersActions[$this->_controllerClassName];
@@ -174,8 +174,7 @@ class SeoModelBehavior extends Behavior {
                 // Get all actions of controller
                 $reflection = new \ReflectionClass($this->_controllerClassName);
                 $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
-                $controller = $reflection->newInstance(Yii::$app->getUniqueId(),
-                    null);
+                $controller = $reflection->newInstance(Yii::$app->getUniqueId(), null);
                 // Add all reusable controller actions
                 $buffer = array_keys($controller->actions());
                 // Loop through all the main controller actions
@@ -194,17 +193,16 @@ class SeoModelBehavior extends Behavior {
             }
 
             // Merge controller actions with actions from config behavior
-            $this->_stopNames = array_unique(
-                array_merge($this->_stopNames, $buffer));
+            $this->_stopNames = array_unique(array_merge($this->_stopNames, $buffer));
         }
     }
 
     public function beforeValidate () {
         $model = $this->owner;
 
-        if (!empty($this->_metaField)) {
+        if (!empty($this->metaField)) {
             // Loop through all the languages available, it is often only one
-            foreach ($this->_languages as $lang) {
+            foreach ($this->languages as $lang) {
                 // Loop through the fields and cut the long strings to set
                 // allowed length
                 foreach ($this->getMetaFields() as $meta_param_key => $meta_param_value_generator) {
@@ -213,26 +211,24 @@ class SeoModelBehavior extends Behavior {
             }
         }
 
-        if (empty($this->_urlField)) {
+        if (empty($this->urlField)) {
             // If do not need to work with SEO:url, then skip further work
             return;
         }
 
         // Add UNIQUE validator for SEO:url field
-        $validator = Validator::createValidator(UniqueValidator::className(),
-            $model, $this->_urlField,
-            [
+        $validator = Validator::createValidator(UniqueValidator::className(), $model,
+            $this->urlField, [
                 'filter' => $this->_uniqueUrlFilter
             ]);
 
         // If SEO: url is not filled by the user, then generate its value
-        $urlFieldVal = trim((string) $model->{$this->_urlField});
+        $urlFieldVal = trim((string) $model->{$this->urlField});
         if ($urlFieldVal === '') {
             $urlFieldVal = $this->getProduceFieldValue($this->_urlProduceField);
         }
         // Transliterated string and remove from it the extra characters
-        $seoUrl = $this->getSeoName($urlFieldVal, $this->_maxUrlLength,
-            $this->_toLowerSeoUrl);
+        $seoUrl = $this->getSeoName($urlFieldVal, $this->_maxUrlLength, $this->_toLowerSeoUrl);
 
         // If there is a match with banned names, then add to the url underbar
         // to the end
@@ -240,31 +236,31 @@ class SeoModelBehavior extends Behavior {
             $seoUrl .= '_';
         }
 
-        $model->{$this->_urlField} = $seoUrl;
+        $model->{$this->urlField} = $seoUrl;
         // Start the first unique validation
-        $validator->validateAttribute($model, $this->_urlField);
+        $validator->validateAttribute($model, $this->urlField);
 
         // Run the validation of up to 50 times, until there is a unique SEO:url
         // name
         $i = 0;
-        while ($model->hasErrors($this->_urlField)) {
+        while ($model->hasErrors($this->urlField)) {
             // Remove the error message received in the last validation
-            $model->clearErrors($this->_urlField);
+            $model->clearErrors($this->urlField);
 
             // If failed 50 times, then something went wrong...
             if (++$i > 50) {
                 // We establish SEO: url to a random hash
-                $model->{$this->_urlField} = md5(uniqid());
+                $model->{$this->urlField} = md5(uniqid());
                 // Finish "infinite" loop
                 break;
             }
 
             // Add "_" at the end of SEO:url
-            $newSeoUrl = $model->{$this->_urlField} . '_';
-            $model->{$this->_urlField} = $newSeoUrl;
+            $newSeoUrl = $model->{$this->urlField} . '_';
+            $model->{$this->urlField} = $newSeoUrl;
             // Run the validator again, because in the previous line, we changed
             // the value of adding a suffix
-            $validator->validateAttribute($model, $this->_urlField);
+            $validator->validateAttribute($model, $this->urlField);
         }
     }
 
@@ -296,7 +292,7 @@ class SeoModelBehavior extends Behavior {
         $model = $this->owner;
         $this->beforeValidate();
 
-        if (empty($this->_metaField)) {
+        if (empty($this->metaField)) {
             // Unless specified meta-field, then we will not save
             return;
         }
@@ -305,10 +301,10 @@ class SeoModelBehavior extends Behavior {
         // the user - leave as is, if there is no - generate
         $this->fillMeta();
 
-        $meta = $model->{$this->_metaField};
+        $meta = $model->{$this->metaField};
 
         // Save all data in a serialized form
-        $model->{$this->_metaField} = serialize($meta);
+        $model->{$this->metaField} = serialize($meta);
     }
 
     /**
@@ -317,17 +313,15 @@ class SeoModelBehavior extends Behavior {
      */
     private function fillMeta () {
         // Loop through all the languages available, it is often only one
-        foreach ($this->_languages as $lang) {
+        foreach ($this->languages as $lang) {
             // Loop through the meta-fields and fill them in the absence of
             // complete data
             foreach ($this->getMetaFields() as $meta_params_key => $meta_param_value_generator) {
-                $meta_params_val = $this->getMetaFieldVal($meta_params_key,
-                    $lang);
-                if (empty($meta_params_val) &&
-                     $meta_param_value_generator !== null) {
+                $meta_params_val = $this->getMetaFieldVal($meta_params_key, $lang);
+                if (empty($meta_params_val) && $meta_param_value_generator !== null) {
                     // Get value from the generator
-                    $meta_params_val = $this->getProduceFieldValue(
-                        $meta_param_value_generator, $lang);
+                    $meta_params_val = $this->getProduceFieldValue($meta_param_value_generator,
+                        $lang);
                     $this->setMetaFieldVal($meta_params_key, $lang,
                         $this->normalizeStr($meta_params_val));
                 }
@@ -340,14 +334,14 @@ class SeoModelBehavior extends Behavior {
     public function afterFind () {
         $model = $this->owner;
 
-        if (!empty($this->_metaField)) {
+        if (!empty($this->metaField)) {
             // Unpack meta-params
-            $meta = @unserialize($model->{$this->_metaField});
+            $meta = @unserialize($model->{$this->metaField});
             if (!is_array($meta)) {
                 $meta = [];
             }
 
-            $model->{$this->_metaField} = $meta;
+            $model->{$this->metaField} = $meta;
         }
     }
 
@@ -357,7 +351,7 @@ class SeoModelBehavior extends Behavior {
      *
      * @return callable[]
      */
-    private function getMetaFields () {
+    public function getMetaFields () {
         return [
             static::TITLE_KEY => $this->_titleProduceFunc,
             static::DESC_KEY => $this->_descriptionProduceFunc,
@@ -368,14 +362,16 @@ class SeoModelBehavior extends Behavior {
     /**
      * Returns the value of the $key SEO:meta for the specified $lang language
      *
-     * @param string $key key TITLE_KEY, DESC_KEY or KEYS_KEY
-     * @param string $lang language
+     * @param string $key
+     *            key TITLE_KEY, DESC_KEY or KEYS_KEY
+     * @param string $lang
+     *            language
      *
      * @return string|null
      */
     private function getMetaFieldVal ($key, $lang) {
         $param = $key . '_' . $lang;
-        $meta = $this->owner->{$this->_metaField};
+        $meta = $this->owner->{$this->metaField};
 
         return is_array($meta) && isset($meta[$param]) ? $meta[$param] : null;
     }
@@ -383,27 +379,31 @@ class SeoModelBehavior extends Behavior {
     /**
      * Sets the value of $key in SEO:meta on the specified $lang language
      *
-     * @param string $key key TITLE_KEY, DESC_KEY or KEYS_KEY
-     * @param string $lang language
-     * @param string $value field value
+     * @param string $key
+     *            key TITLE_KEY, DESC_KEY or KEYS_KEY
+     * @param string $lang
+     *            language
+     * @param string $value
+     *            field value
      */
     private function setMetaFieldVal ($key, $lang, $value) {
         $model = $this->owner;
         $param = $key . '_' . $lang;
-        $meta = $model->{$this->_metaField};
+        $meta = $model->{$this->metaField};
         if (!is_array($meta)) {
             $meta = [];
         }
 
         $meta[$param] = (string) $value;
 
-        $model->{$this->_metaField} = $meta;
+        $model->{$this->metaField} = $meta;
     }
 
     /**
      * Returns the metadata for this model
      *
-     * @param string|null $lang language, which requires meta-data
+     * @param string|null $lang
+     *            language, which requires meta-data
      *
      * @return array
      */
@@ -414,23 +414,22 @@ class SeoModelBehavior extends Behavior {
 
         $buffer = [];
 
-        if (!empty($this->_metaField)) {
+        if (!empty($this->metaField)) {
             // Check that all meta-fields were filled with the values
             $this->fillMeta();
         }
 
         // If meta stored in a model, then refund the value of the model fields,
         // otherwise will generate data on the fly
-        $getValMethodName = !empty($this->_metaField) ? 'getMetaFieldVal' : 'getProduceFieldValue';
+        $getValMethodName = !empty($this->metaField) ? 'getMetaFieldVal' : 'getProduceFieldValue';
 
         foreach ($this->getMetaFields() as $meta_params_key => $meta_param_value_generator) {
             // Choosing what parameters are passed to the function get the
             // value: the name of the field or function-generator
-            $getValMethodParam = !empty($this->_metaField) ? $meta_params_key : $meta_param_value_generator;
+            $getValMethodParam = !empty($this->metaField) ? $meta_params_key : $meta_param_value_generator;
             // Directly receiving the value of any meta-field of the model or
             // generate it
-            $buffer[$meta_params_key] = $this->$getValMethodName(
-                $getValMethodParam, $lang);
+            $buffer[$meta_params_key] = $this->$getValMethodName($getValMethodParam, $lang);
         }
 
         return $buffer;
@@ -463,31 +462,34 @@ class SeoModelBehavior extends Behavior {
     /**
      * Returns the URL to the page viewing for current model-owner
      *
-     * @param string $title SEO:title for the url, use only if the reference is
-     *        not generated from the model, and externally
-     * @param string $anchor #Anchor, which is added to the url ($title can be
-     *        set to NULL)
-     * @param boolean $abs Need a absolute link ($title and $anchor can be set
-     *        to NULL)
+     * @param string $title
+     *            SEO:title for the url, use only if the reference is
+     *            not generated from the model, and externally
+     * @param string $anchor
+     *            #Anchor, which is added to the url ($title can be
+     *            set to NULL)
+     * @param boolean $abs
+     *            Need a absolute link ($title and $anchor can be set
+     *            to NULL)
      *
      * @return string
      */
     public function getViewUrl ($title = null, $anchor = null, $abs = false) {
         // If additional link parameters should be generated - do generate
         if (is_callable($this->_additionalLinkParams)) {
-            $this->_additionalLinkParams = call_user_func(
-                $this->_additionalLinkParams, $this->owner);
+            $this->_additionalLinkParams = call_user_func($this->_additionalLinkParams,
+                $this->owner);
         }
 
         // If the model does not have SEO: url, then the value of this field
         // will be used by the Model ID
-        if (empty($this->_urlField) && empty($title)) {
+        if (empty($this->urlField) && empty($title)) {
             $title = $this->owner->getPrimaryKey();
         }
 
         // Add the parameter that is responsible for displaying SEO:url
         $params = [
-            $this->_linkTitleParamName => !empty($title) ? $title : $this->owner->{$this->_urlField}
+            $this->_linkTitleParamName => !empty($title) ? $title : $this->owner->{$this->urlField}
         ];
 
         // Adding anchor
@@ -504,69 +506,18 @@ class SeoModelBehavior extends Behavior {
     /**
      * Returns the absolute URL to the page view model-owner
      *
-     * @param string $title SEO:title for the url, use only if the reference is
-     *        not generated from the model, and externally
-     * @param string $anchor Якорь, который добвится к url, а $title можно
-     *        указать как NULL#Anchor, which is added to the url ($title can be
-     *        set to NULL)
+     * @param string $title
+     *            SEO:title for the url, use only if the reference is
+     *            not generated from the model, and externally
+     * @param string $anchor
+     *            Якорь, который добвится к url, а $title можно
+     *            указать как NULL#Anchor, which is added to the url ($title can be
+     *            set to NULL)
      *
      * @return string
      */
     public function getAbsoluteViewUrl ($title = null, $anchor = null) {
         return $this->getViewUrl($title, $anchor, true);
-    }
-
-    /**
-     * Render the SEO field for a form
-     *
-     * @param ActiveForm $form
-     */
-    public function renderFormSeoFields ($form = null) {
-        // If the parameters can not be edited manually - it means nothing to
-        // display them in the form of
-        if (!$this->_clientChange) {
-            return;
-        }
-
-        $model = $this->owner;
-
-        echo '<hr />';
-
-        if ($form instanceof ActiveForm) {
-            echo $form->field($model, $this->_urlField)->textInput();
-        } else {
-            echo '<div class="seo_row">';
-            echo Html::activeLabel($model, $this->_urlField);
-            echo Html::activeTextInput($model, $this->_urlField);
-            echo Html::error($model, $this->_urlField);
-            echo "</div>\n\n";
-        }
-
-        foreach ($this->_languages as $lang) {
-            foreach ($this->getMetaFields() as $meta_field_key => $meta_field_generator) {
-                $attr = $this->_metaField . "[{$meta_field_key}_{$lang}]";
-                $label = 'SEO: ' . $meta_field_key;
-                if (count($this->_languages) > 1) {
-                    $label .= ' ' . strtoupper($lang);
-                }
-                if ($form instanceof ActiveForm) {
-                    $input = $meta_field_key == self::DESC_KEY ? 'textarea' : 'textInput';
-                    echo $form->field($model, $attr)
-                        ->label($label)
-                        ->$input();
-                } else {
-                    $input = $meta_field_key == self::DESC_KEY ? 'activeTextarea' : 'activeTextInput';
-                    echo '<div class="seo_row">';
-                    echo Html::activeLabel($model, $attr,
-                        [
-                            'label' => $label
-                        ]);
-                    echo Html::$input($model, $attr);
-                    echo Html::error($model, $attr);
-                    echo "</div>\n";
-                }
-            }
-        }
     }
 
     /**
@@ -605,8 +556,8 @@ class SeoModelBehavior extends Behavior {
      *         correct URL
      */
     public function checkSeoUrl () {
-        if (!empty($this->check_seo_url_regexp) &&
-             preg_match($this->_checkSeoUrlRegexp, Yii::$app->request->pathInfo)) {
+        if (!empty($this->check_seo_url_regexp) && preg_match($this->_checkSeoUrlRegexp,
+            Yii::$app->request->pathInfo)) {
             Yii::$app->response->redirect($this->getViewUrl(), 301);
         }
 

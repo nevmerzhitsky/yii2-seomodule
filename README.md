@@ -119,5 +119,12 @@ $abs_url = $model->absoluteViewUrl;
 
 Render SEO:url and SEO:meta fields in the "_form.php" file:
 ```php
-<?php $model->renderFormSeoFields($ActiveForm_or_void); ?>
+<?php
+$this->beginContent('@app/vendor/nevmerzhitsky/yii2-seomodule/views/edit-form.php',
+    [
+        'model' => $model,
+        'form' => $form
+    ]);
+$this->endContent();
+?>
 ```
