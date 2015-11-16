@@ -87,25 +87,24 @@ PHPdoc for model:
 In main layout:
 ```php
 <head>
-    <?php $this->renderMetaTags(); ?>
+    <?php echo $this->renderMetaTags(); ?>
     ...
 </head>
 ```
 
 Usage
 -----
-In "view.php" file for model:
+In "view" template for a model:
 ```php
-// set SEO:meta data for current page
+// Setup title and meta tags of the current page by the model.
 $this->setSeoData($model->getSeoBehavior());
-
-// set link tag for "no index" (and optional "no follow") for current page
-$this->noIndex($and_no_follow_bool);
+// Set robots meta-tag content of the page.
+$this->setMetaRobots('noindex, nofollow');
 ```
-or in controller:
+Or in a controller:
 ```php
 Yii::$app->view->setSeoData($model->getSeoBehavior());
-Yii::$app->view->noIndex($and_no_follow_bool);
+Yii::$app->view->setMetaRobots('noindex, nofollow');
 ```
 
 Get link to view. Based on behavior config values: `viewRoute` and `additionalLinkParams`

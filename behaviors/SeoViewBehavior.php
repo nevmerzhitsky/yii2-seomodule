@@ -11,7 +11,7 @@ use yii\web\View;
 use yii\helpers\Html;
 
 /**
- * Управление установкой SEO-параметров для страницы
+ * Add ability of view to setup page title and meta-tags for SEO.
  *
  * @package nevmerzhitsky\seomodule
  */
@@ -23,108 +23,108 @@ class SeoViewBehavior extends Behavior {
 
     private $_metaKeywords = '';
 
-    private $_noIndex = false;
+    private $_metaRobots = '';
 
     /**
-     * Установка meta параметров страницы
+     * Set meta-params for current page.
      *
-     * @param mixed $title 1) массив:
-     *        ["title"=>"Page Title", "desc"=>"Page Descriptions",
-     *        "keys"=>"Page, Keywords"]
-     *        2) SeoModelBehavior
-     *        3) Строка для title страницы
+     * @param array|SeoModelBehavior|string $title - array: ["title"=>"Page
+     *        Title", "desc"=>"Page Descriptions", "keywords"=>"Page, Keywords"]
+     *        - string: used as title of page
      * @param string $desc Meta description
-     * @param mixed $keys Meta keywords, строка либо массив ключевиков
-     *
+     * @param string|string[] $keywords Meta keywords string or array of
+     *        keywords.
      * @return static
      */
-    public function setSeoData ($title, $desc = '', $keys = '') {
+    public function setSeoData ($title, $desc = '', $keywords = '') {
         $data = $title;
         if ($title instanceof SeoModelBehavior) {
-            // Вытаскиваем данные из модельки, в которой есть SeoModelBehavior
             $meta = $title->getSeoData();
             $data = [
                 'title' => $meta[SeoModelBehavior::TITLE_KEY],
                 'desc' => $meta[SeoModelBehavior::DESC_KEY],
-                'keys' => $meta[SeoModelBehavior::KEYS_KEY]
+                'keywords' => $meta[SeoModelBehavior::KEYS_KEY]
             ];
         } elseif (is_string($title)) {
             $data = [
                 'title' => $title,
                 'desc' => $desc,
-                'keys' => !is_array($keys) ? $keys : implode(', ', $keys)
+                'keywords' => !is_array($keywords) ? $keywords : implode(', ',
+                    $keywords)
             ];
         }
+
         if (isset($data['title'])) {
-            $this->_page_title = $this->normalizeStr($data['title']);
+            $this->_pageTitle = $this->_normalizeStr($data['title']);
         }
         if (isset($data['desc'])) {
-            $this->_metaDescription = $this->normalizeStr($data['desc']);
+            $this->_metaDescription = $this->_normalizeStr($data['desc']);
         }
-        if (isset($data['keys'])) {
-            $this->_metaKeywords = $this->normalizeStr($data['keys']);
+        if (isset($data['keywords'])) {
+            $this->_metaKeywords = $this->_normalizeStr($data['keywords']);
         }
 
         return $this;
     }
 
-    public function renderMetaTags () {
-        /* @var $view View */
-        $view = $this->owner;
-        $title = !empty($this->_page_title) ? $this->_page_title . ' - ' .
-             Yii::$app->name : Yii::$app->name;
-        echo '<title>' . Html::encode($this->normalizeStr($title)) . '</title>' .
-             PHP_EOL;
-        if (!empty($this->_metaDescription)) {
-            $view->registerMetaTag(
-                [
-                    'name' => 'description',
-                    'content' => Html::encode(
-                        $this->normalizeStr($this->_metaDescription))
-                ]);
-        }
-        if (!empty($this->_metaKeywords)) {
-            $view->registerMetaTag(
-                [
-                    'name' => 'keywords',
-                    'content' => Html::encode(
-                        $this->normalizeStr($this->_metaKeywords))
-                ]);
-        }
-        if (!empty($this->_noIndex)) {
-            $view->registerMetaTag(
-                [
-                    'name' => 'robots',
-                    'content' => $this->_noIndex
-                ]);
-        }
+    /**
+     * Set robots meta-tag.
+     *
+     * @param string $content Content of the meta-tag.
+     */
+    public function setMetaRobots ($content = 'noindex, follow') {
+        $this->_metaRobots = trim($content);
     }
 
     /**
-     * Нормализует строку, подготоваливает её для отображения
+     * Render HTML with configured title and meta tags.
+     *
+     * @return string
+     */
+    public function renderMetaTags () {
+        /* @var $view View */
+        $view = $this->owner;
+
+        $map = [
+            'description' => $this->_metaDescription,
+            'keywords' => $this->_metaKeywords,
+            'robots' => $this->_metaRobots
+        ];
+
+        foreach ($map as $name => $value) {
+            if (empty($value)) {
+                continue;
+            }
+
+            $view->registerMetaTag(
+                [
+                    'name' => $name,
+                    'content' => Html::encode($this->_normalizeStr($value))
+                ], "meta-{$name}");
+        }
+
+        // @TODO Add title template to params.
+        if (!empty($this->_pageTitle)) {
+            $title = $this->_pageTitle . ' - ' . Yii::$app->name;
+        } else {
+            $title = Yii::$app->name;
+        }
+
+        $title = Html::encode($this->_normalizeStr($title));
+
+        return "<title>{$title}</title>" . PHP_EOL;
+    }
+
+    /**
      *
      * @param string $str
      * @return string
      */
-    private function normalizeStr ($str) {
-        // Удаляем теги из текста
+    private function _normalizeStr ($str) {
         $str = strip_tags($str);
-        // Заменяем все пробелы, переносы строк и табы на один пробел
-        $str = trim(preg_replace('/[\s]+/is', ' ', $str));
+        // Replace many various sequential space chars to one.
+        $str = trim(preg_replace('/[\s]+/isu', ' ', $str));
 
         return $str;
-    }
-
-    /**
-     * Установить meta-тег noindex для текущей страницы
-     *
-     * @param boolean $follow Разрешить поисковикам следовать по ссылкам? Если
-     *        FALSE,
-     *        то в мета-тег будет добавлено nofollow
-     */
-    public function noIndex ($follow = true) {
-        $content = 'noindex, ' . ($follow ? 'follow' : 'nofollow');
-
-        $this->_noIndex = $content;
     }
 }
