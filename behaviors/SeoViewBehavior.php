@@ -17,6 +17,19 @@ use yii\helpers\Html;
  */
 class SeoViewBehavior extends Behavior {
 
+    /**
+     *
+     * @param string $str
+     * @return string
+     */
+    static public function normalizeStr ($str) {
+        $str = strip_tags($str);
+        // Replace many various sequential space chars to one.
+        $str = trim(preg_replace('/[\s]+/isu', ' ', $str));
+
+        return $str;
+    }
+
     private $_pageTitle = '';
 
     private $_metaDescription = '';
@@ -28,12 +41,15 @@ class SeoViewBehavior extends Behavior {
     /**
      * Set meta-params for current page.
      *
-     * @param array|SeoModelBehavior|string $title - array: ["title"=>"Page
-     *        Title", "desc"=>"Page Descriptions", "keywords"=>"Page, Keywords"]
-     *        - string: used as title of page
-     * @param string $desc Meta description
-     * @param string|string[] $keywords Meta keywords string or array of
-     *        keywords.
+     * @param array|SeoModelBehavior|string $title
+     *            - array: ["title"=>"Page
+     *            Title", "desc"=>"Page Descriptions", "keywords"=>"Page, Keywords"]
+     *            - string: used as title of page
+     * @param string $desc
+     *            Meta description
+     * @param string|string[] $keywords
+     *            Meta keywords string or array of
+     *            keywords.
      * @return static
      */
     public function setSeoData ($title, $desc = '', $keywords = '') {
@@ -49,19 +65,18 @@ class SeoViewBehavior extends Behavior {
             $data = [
                 'title' => $title,
                 'desc' => $desc,
-                'keywords' => !is_array($keywords) ? $keywords : implode(', ',
-                    $keywords)
+                'keywords' => !is_array($keywords) ? $keywords : implode(', ', $keywords)
             ];
         }
 
         if (isset($data['title'])) {
-            $this->_pageTitle = $this->_normalizeStr($data['title']);
+            $this->_pageTitle = static::normalizeStr($data['title']);
         }
         if (isset($data['desc'])) {
-            $this->_metaDescription = $this->_normalizeStr($data['desc']);
+            $this->_metaDescription = static::normalizeStr($data['desc']);
         }
         if (isset($data['keywords'])) {
-            $this->_metaKeywords = $this->_normalizeStr($data['keywords']);
+            $this->_metaKeywords = static::normalizeStr($data['keywords']);
         }
 
         return $this;
@@ -70,7 +85,8 @@ class SeoViewBehavior extends Behavior {
     /**
      * Set robots meta-tag.
      *
-     * @param string $content Content of the meta-tag.
+     * @param string $content
+     *            Content of the meta-tag.
      */
     public function setMetaRobots ($content = 'noindex, follow') {
         $this->_metaRobots = trim($content);
@@ -103,7 +119,7 @@ class SeoViewBehavior extends Behavior {
             $view->registerMetaTag(
                 [
                     'name' => $name,
-                    'content' => Html::encode($this->_normalizeStr($value))
+                    'content' => Html::encode(static::normalizeStr($value))
                 ], "seo-{$name}");
         }
 
@@ -114,21 +130,8 @@ class SeoViewBehavior extends Behavior {
             $title = Yii::$app->name;
         }
 
-        $title = Html::encode($this->_normalizeStr($title));
+        $title = Html::encode(static::normalizeStr($title));
 
         return "<title>{$title}</title>" . PHP_EOL;
-    }
-
-    /**
-     *
-     * @param string $str
-     * @return string
-     */
-    private function _normalizeStr ($str) {
-        $str = strip_tags($str);
-        // Replace many various sequential space chars to one.
-        $str = trim(preg_replace('/[\s]+/isu', ' ', $str));
-
-        return $str;
     }
 }
