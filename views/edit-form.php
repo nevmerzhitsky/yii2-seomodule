@@ -1,4 +1,8 @@
 <?php
+/**
+ *
+ * @link Inspired by https://github.com/demisang/yii2-seo/
+ */
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 
@@ -36,7 +40,9 @@ foreach ($seo->languages as $lang) {
         }
         if ($form instanceof ActiveForm) {
             $input = $meta_field_key == $seo::DESC_KEY ? 'textarea' : 'textInput';
-            echo $form->field($model, $attr)->label($label)->$input();
+            echo $form->field($model, $attr)
+                ->label($label)
+                ->$input();
         } else {
             $input = $meta_field_key == $seo::DESC_KEY ? 'activeTextarea' : 'activeTextInput';
             echo '<div class="seo_row">';
