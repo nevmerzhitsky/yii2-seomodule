@@ -9,6 +9,7 @@ use nevmerzhitsky\seomodule\models\SeoMeta;
 /**
  * Meta tags
  *
+ * @package nevmerzhitsky\seomodule
  * @author Max Voronov <v0id@list.ru>
  */
 class Meta extends Component {

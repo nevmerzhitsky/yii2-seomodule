@@ -13,6 +13,7 @@ use yii\db\ActiveRecord;
  * @property string $metadesc
  * @property string $tags
  * @property integer $robots
+ * @package nevmerzhitsky\seomodule
  */
 class SeoMeta extends ActiveRecord {
 

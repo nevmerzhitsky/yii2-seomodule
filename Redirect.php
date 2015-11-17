@@ -4,8 +4,9 @@ use yii\web\ErrorHandler;
 use nevmerzhitsky\seomodule\models\SeoRedirects;
 
 /**
- * Redirects
+ * Redirects from one route to another.
  *
+ * @package nevmerzhitsky\seomodule
  * @author Max Voronov <v0id@list.ru>
  */
 class Redirect extends ErrorHandler {

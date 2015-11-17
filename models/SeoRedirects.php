@@ -9,6 +9,7 @@ use yii\db\ActiveRecord;
  * @property string $old_url
  * @property string $new_url
  * @property string $status
+ * @package nevmerzhitsky\seomodule
  */
 class SeoRedirects extends ActiveRecord {
 

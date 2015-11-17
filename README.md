@@ -56,24 +56,22 @@ public function behaviors()
     return [
         'seo' => [
             'class' => 'nevmerzhitsky\seomodule\SeoModelBehavior',
-            'seoConfig' => [
-                'titleProduceFunc' => 'title',
-                'descriptionProduceFunc' => 'short_desc',
-                'keysProduceFunc' => function ($model) {
-                        /* @var $model self|\yii\db\ActiveRecord */
-                        return $model->title . ', tag1, tag2';
-                    },
-                'metaField' => 'seo_meta',
-                'userCanEdit' => Yii::$app->has('user') && Yii::$app->user->can(User::ROLE_ADMIN),
-                // 'languages' => 'ru',
-                'urlField' => 'seo_url',
-                'urlProduceField' => 'title',
-                'controllerClassName' => '\frontend\controllers\PostController',
-                'uniqueUrlFilter' => function ($query) use ($it) {
-                        /* @var $query \yii\db\Query */
-                        $query->andWhere(['category_id' => $it->category_id]);
-                    },
-            ],
+            'titleProduceFunc' => 'title',
+            'descriptionProduceFunc' => 'short_desc',
+            'keysProduceFunc' => function ($model) {
+                /* @var $model self|\yii\db\ActiveRecord */
+                return $model->title . ', tag1, tag2';
+            },
+            'metaField' => 'seo_meta',
+            'userCanEdit' => Yii::$app->has('user') && Yii::$app->user->can(User::ROLE_ADMIN),
+            // 'languages' => 'ru',
+            'urlField' => 'seo_url',
+            'urlProduceField' => 'title',
+            'controllerClassName' => '\frontend\controllers\PostController',
+            'uniqueUrlFilter' => function ($query) use ($it) {
+                /* @var $query \yii\db\Query */
+                $query->andWhere(['category_id' => $it->category_id]);
+            },
         ],
     ];
 }

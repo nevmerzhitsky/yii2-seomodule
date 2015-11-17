@@ -1,10 +1,9 @@
 <?php
-namespace nevmerzhitsky\seomodule\behaviors;
-
 /**
- *
  * @link Inspired by https://github.com/demisang/yii2-seo/
  */
+namespace nevmerzhitsky\seomodule\behaviors;
+
 use Yii;
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
@@ -22,6 +21,9 @@ class SeoModelBehavior extends Behavior {
     const TITLE_KEY = 'title';
     const DESC_KEY = 'desc';
     const KEYS_KEY = 'keys';
+
+    /** @var string[][] Saved actions of controllers for SEO:url stop list */
+    private static $_controllersActions = [];
 
     public static function keyToLabel ($key) {
         static $map = [
@@ -41,19 +43,19 @@ class SeoModelBehavior extends Behavior {
      * @var string|callable The name of the field which will form the SEO:url,
      *      or function,
      */
-    private $_urlProduceField = 'title';
+    public $urlProduceField = 'title';
 
     /**
      *
      * @var string|callable PHP-expression that generates field SEO:title
      */
-    private $_titleProduceFunc;
+    public $titleProduceFunc;
 
     /** @var string|callable PHP-expression that generates field SEO:desciption */
-    private $_descriptionProduceFunc;
+    public $descriptionProduceFunc;
 
     /** @var string|callable PHP-expression that generates field SEO:keywords */
-    private $_keysProduceFunc;
+    public $keysProduceFunc;
 
     /**
      *
@@ -66,19 +68,19 @@ class SeoModelBehavior extends Behavior {
     public $userCanEdit = true;
 
     /** @var integer The maximum length of the field SEO:url */
-    private $_maxUrlLength = 70;
+    public $maxUrlLength = 70;
 
     /** @var integer The maximum length of the field Title */
-    private $_maxTitleLength = 70;
+    public $maxTitleLength = 70;
 
     /** @var integer The maximum length of the field Description */
-    private $_maxDescLength = 130;
+    public $maxDescLength = 130;
 
     /** @var integer The maximum length of the field Keywords */
-    private $_maxKeysLength = 150;
+    public $maxKeysLength = 150;
 
     /** @var array Forbidden for use SEO:url names */
-    private $_stopNames = [
+    public $stopNames = [
         'create',
         'update',
         'delete',
@@ -95,22 +97,16 @@ class SeoModelBehavior extends Behavior {
      *      model.
      *      Must be specified for a list of actions of the controller to seo_url
      */
-    private $_controllerClassName = '';
+    public $controllerClassName = '';
 
     /** @var boolean Is it necessary to use only lowercase when generating seo_url */
-    private $_toLowerSeoUrl = true;
+    public $toLowerSeoUrl = true;
 
     /** @var Query Additional criteria when checking the uniqueness of seo_url */
-    private $_uniqueUrlFilter;
+    public $uniqueUrlFilter;
 
     /** @var string encoding site */
-    private $_encoding = 'UTF-8';
-
-    /** @var array Array configuration that overrides the above settings */
-    public $seoConfig = [];
-
-    /** @var array Saved actions of controllers for SEO:url stop list */
-    private static $_controllersActions = [];
+    public $encoding = 'UTF-8';
 
     public function events () {
         return [
@@ -123,38 +119,27 @@ class SeoModelBehavior extends Behavior {
     public function attach ($owner) {
         parent::attach($owner);
 
-        // Apply the configuration options
-        foreach ($this->seoConfig as $key => $value) {
-            if ($this->hasProperty($key)) {
-                $var = $key;
-            } else {
-                $var = '_' . $key;
-            }
-
-            $this->$var = $value;
-        }
-
         $this->languages = (array) $this->languages;
-        // If there was not passed any language - we use only one system
-        // language
+        // If there was not passed any language - we use only one system language.
         if (!count($this->languages)) {
             $this->languages = [
                 Yii::$app->language
             ];
         }
+
         // if the current user can see and edit SEO-data model
         if (is_callable($this->userCanEdit)) {
             $this->userCanEdit = call_user_func($this->userCanEdit, $owner);
         }
 
         // Determine the controller and add it actions to the seo url stop list
-        if (!empty($this->urlField) && !empty($this->_controllerClassName)) {
-            if (isset(static::$_controllersActions[$this->_controllerClassName])) {
+        if (!empty($this->urlField) && !empty($this->controllerClassName)) {
+            if (isset(static::$_controllersActions[$this->controllerClassName])) {
                 // Obtain the previously defined controller actions
-                $buffer = static::$_controllersActions[$this->_controllerClassName];
+                $buffer = static::$_controllersActions[$this->controllerClassName];
             } else {
                 // Get all actions of controller
-                $reflection = new \ReflectionClass($this->_controllerClassName);
+                $reflection = new \ReflectionClass($this->controllerClassName);
                 $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
                 $controller = $reflection->newInstance(Yii::$app->getUniqueId(), null);
                 // Add all reusable controller actions
@@ -171,11 +156,11 @@ class SeoModelBehavior extends Behavior {
                 }
 
                 // Save controller actions for later use
-                static::$_controllersActions[$this->_controllerClassName] = $buffer;
+                static::$_controllersActions[$this->controllerClassName] = $buffer;
             }
 
             // Merge controller actions with actions from config behavior
-            $this->_stopNames = array_unique(array_merge($this->_stopNames, $buffer));
+            $this->stopNames = array_unique(array_merge($this->stopNames, $buffer));
         }
     }
 
@@ -210,20 +195,20 @@ class SeoModelBehavior extends Behavior {
         // Add UNIQUE validator for SEO:url field
         $validator = Validator::createValidator(UniqueValidator::className(), $model,
             $this->urlField, [
-                'filter' => $this->_uniqueUrlFilter
+                'filter' => $this->uniqueUrlFilter
             ]);
 
         // If SEO: url is not filled by the user, then generate its value
         $urlFieldVal = trim((string) $model->{$this->urlField});
         if ($urlFieldVal === '') {
-            $urlFieldVal = $this->_getProduceFieldValue($this->_urlProduceField);
+            $urlFieldVal = $this->_getProduceFieldValue($this->urlProduceField);
         }
         // Transliterated string and remove from it the extra characters
-        $seoUrl = $this->_getSeoName($urlFieldVal, $this->_maxUrlLength, $this->_toLowerSeoUrl);
+        $seoUrl = $this->_getSeoName($urlFieldVal, $this->maxUrlLength, $this->toLowerSeoUrl);
 
         // If there is a match with banned names, then add to the url underbar
         // to the end
-        while (in_array($seoUrl, $this->_stopNames)) {
+        while (in_array($seoUrl, $this->stopNames)) {
             $seoUrl .= '_';
         }
 
@@ -265,15 +250,15 @@ class SeoModelBehavior extends Behavior {
     private function _applyMaxLength ($key, $lang) {
         $value = trim($this->_getMetaFieldVal($key, $lang));
         if ($key === self::TITLE_KEY) {
-            $max = $this->_maxTitleLength;
+            $max = $this->maxTitleLength;
         } elseif ($key === self::DESC_KEY) {
-            $max = $this->_maxDescLength;
+            $max = $this->maxDescLength;
         } else {
-            $max = $this->_maxKeysLength;
+            $max = $this->maxKeysLength;
         }
 
-        if (mb_strlen($value, $this->_encoding) > $max) {
-            $value = mb_substr($value, 0, $max, $this->_encoding);
+        if (mb_strlen($value, $this->encoding) > $max) {
+            $value = mb_substr($value, 0, $max, $this->encoding);
         }
 
         $this->_setMetaFieldVal($key, $lang, $value);
@@ -344,9 +329,9 @@ class SeoModelBehavior extends Behavior {
      */
     public function getMetaFields () {
         return [
-            static::TITLE_KEY => $this->_titleProduceFunc,
-            static::DESC_KEY => $this->_descriptionProduceFunc,
-            static::KEYS_KEY => $this->_keysProduceFunc
+            static::TITLE_KEY => $this->titleProduceFunc,
+            static::DESC_KEY => $this->descriptionProduceFunc,
+            static::KEYS_KEY => $this->keysProduceFunc
         ];
     }
 
@@ -547,10 +532,10 @@ class SeoModelBehavior extends Behavior {
         $title = trim($title, '-');
         $title = strtr($title, $trans);
         if ($toLower) {
-            $title = mb_strtolower($title, $this->_encoding);
+            $title = mb_strtolower($title, $this->encoding);
         }
-        if (mb_strlen($title, $this->_encoding) > $maxLength) {
-            $title = mb_substr($title, 0, $maxLength, $this->_encoding);
+        if (mb_strlen($title, $this->encoding) > $maxLength) {
+            $title = mb_substr($title, 0, $maxLength, $this->encoding);
         }
 
         // Return usable string

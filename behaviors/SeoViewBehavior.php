@@ -1,10 +1,9 @@
 <?php
-namespace nevmerzhitsky\seomodule\behaviors;
-
 /**
- *
  * @link Inspired by https://github.com/demisang/yii2-seo/
  */
+namespace nevmerzhitsky\seomodule\behaviors;
+
 use Yii;
 use yii\base\Behavior;
 use yii\web\View;
