@@ -190,7 +190,31 @@ class SeoModelBehavior extends Behavior {
             }
         }
 
+        $this->_cleanUpMetaEmptiness();
         $this->_validateUrlField();
+    }
+
+    /**
+     * Remove empty keys from meta field.
+     */
+    private function _cleanUpMetaEmptiness () {
+        $model = $this->owner;
+        $meta = $model->{$this->metaField};
+
+        foreach ($meta as $lang => &$subMeta) {
+            foreach ($subMeta as $key => $value) {
+                if (empty($value)) {
+                    unset($subMeta[$key]);
+                }
+            }
+
+            if (empty($subMeta)) {
+                unset($meta[$lang]);
+            }
+        }
+        unset($subMeta);
+
+        $model->{$this->metaField} = $meta;
     }
 
     /**
@@ -290,7 +314,8 @@ class SeoModelBehavior extends Behavior {
         $meta = $model->{$this->metaField};
 
         // Save all data in a JSON form.
-        $model->{$this->metaField} = json_encode($meta);
+        $meta = ! empty($meta) ? json_encode($meta) : null;
+        $model->{$this->metaField} = $meta;
     }
 
     /**
