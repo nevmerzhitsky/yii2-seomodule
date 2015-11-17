@@ -25,6 +25,18 @@ class SeoModelBehavior extends Behavior {
     /** @var string[][] Saved actions of controllers for SEO:url stop list */
     private static $_controllersActions = [];
 
+    /**
+     *
+     * @return string[]
+     */
+    public static function getMetaKeys () {
+        return [
+            static::TITLE_KEY,
+            static::DESC_KEY,
+            static::KEYS_KEY
+        ];
+    }
+
     public static function keyToLabel ($key) {
         static $map = [
             self::TITLE_KEY => 'Title',
@@ -33,6 +45,32 @@ class SeoModelBehavior extends Behavior {
         ];
 
         return $map[$key];
+    }
+
+    /**
+     *
+     * @param \yii\base\Model $model
+     * @return callback @TODO Convert to standalone validator.
+     */
+    public static function metaFieldValidator ($model) {
+        return function  ($attribute, $params) use( $model) {
+            $meta = $model->{$attribute};
+
+            if (!is_array($meta)) {
+                $model->addError($attribute, 'SEO meta field should be array.');
+            } else {
+                $keys = static::getMetaKeys();
+
+                foreach ($meta as $lang => $subMeta) {
+                    foreach ($subMeta as $key => $value) {
+                        if (!in_array($key, $keys)) {
+                            $model->addError($attribute,
+                                "Unknown field '{$key}' in SEO meta field of {$lang} language.");
+                        }
+                    }
+                }
+            }
+        };
     }
 
     /** @var string The name of the field responsible for SEO:url */
@@ -201,7 +239,7 @@ class SeoModelBehavior extends Behavior {
         // If SEO: url is not filled by the user, then generate its value
         $urlFieldVal = trim((string) $model->{$this->urlField});
         if ($urlFieldVal === '') {
-            $urlFieldVal = $this->_getProduceFieldValue($this->urlProduceField);
+            $urlFieldVal = $this->_getProduceValue($this->urlProduceField);
         }
         // Transliterated string and remove from it the extra characters
         $seoUrl = $this->_getSeoName($urlFieldVal, $this->maxUrlLength, $this->toLowerSeoUrl);
@@ -248,7 +286,7 @@ class SeoModelBehavior extends Behavior {
      * @param string $lang
      */
     private function _applyMaxLength ($key, $lang) {
-        $value = trim($this->_getMetaFieldVal($key, $lang));
+        $value = trim($this->_getDbValue($key, $lang));
 
         if ($key === self::TITLE_KEY) {
             // @TODO Call only for produce content.
@@ -263,7 +301,7 @@ class SeoModelBehavior extends Behavior {
             $value = mb_substr($value, 0, $max, $this->encoding);
         }
 
-        $this->_setMetaFieldVal($key, $lang, $value);
+        $this->_setDbValue($key, $lang, $value);
     }
 
     public function beforeSave () {
@@ -274,10 +312,6 @@ class SeoModelBehavior extends Behavior {
         if (empty($this->metaField)) {
             return;
         }
-
-        // Check all the SEO field and populate them with data, if specified by the user -
-        // leave as is, if there is no - generate
-        $this->_fillMeta();
 
         $meta = $model->{$this->metaField};
 
@@ -293,11 +327,11 @@ class SeoModelBehavior extends Behavior {
         foreach ($this->languages as $lang) {
             // Loop through the meta-fields and fill them in the absence of complete data.
             foreach ($this->getMetaFields() as $key => $valueGenerator) {
-                $value = $this->_getMetaFieldVal($key, $lang);
+                $value = $this->_getDbValue($key, $lang);
                 if (empty($value) && $valueGenerator !== null) {
                     // Get value from the generator
-                    $value = $this->_getProduceFieldValue($valueGenerator, $lang);
-                    $this->_setMetaFieldVal($key, $lang, SeoViewBehavior::normalizeStr($value));
+                    $value = $this->_getProduceValue($valueGenerator, $lang);
+                    $this->_setDbValue($key, $lang, SeoViewBehavior::normalizeStr($value));
                 }
                 // We verify that the length of the string in the normal
                 $this->_applyMaxLength($key, $lang);
@@ -342,7 +376,7 @@ class SeoModelBehavior extends Behavior {
      *            language
      * @return string|null
      */
-    private function _getMetaFieldVal ($key, $lang) {
+    private function _getDbValue ($key, $lang) {
         $meta = $this->owner->{$this->metaField};
 
         if (!is_array($meta) || !isset($meta[$lang]) || !isset($meta[$lang][$key])) {
@@ -362,7 +396,7 @@ class SeoModelBehavior extends Behavior {
      * @param string $value
      *            field value
      */
-    private function _setMetaFieldVal ($key, $lang, $value) {
+    private function _setDbValue ($key, $lang, $value) {
         $model = $this->owner;
         $meta = $model->{$this->metaField};
         if (!is_array($meta)) {
@@ -394,19 +428,18 @@ class SeoModelBehavior extends Behavior {
         if (!empty($this->metaField)) {
             $this->_fillMeta();
         }
-        var_dump('$this->metaField', $this->owner->{$this->metaField});
+
         $buffer = [];
         foreach ($this->getMetaFields() as $key => $valueGenerator) {
             // If meta stored in a model, then refund the value of the model fields, otherwise will
             // generate data on the fly
             if (!empty($this->metaField)) {
-                $buffer[$key] = $this->_getMetaFieldVal($key, $lang);
+                $buffer[$key] = $this->_getDbValue($key, $lang);
             } else {
-                $buffer[$key] = $this->_getProduceFieldValue($valueGenerator, $lang);
+                $buffer[$key] = $this->_getProduceValue($valueGenerator, $lang);
             }
         }
-        var_dump('$buffer', $buffer);
-        die();
+
         return $buffer;
     }
 
@@ -427,7 +460,7 @@ class SeoModelBehavior extends Behavior {
      *
      * @return string
      */
-    private function _getProduceFieldValue ($produceFunc, $lang = null) {
+    private function _getProduceValue ($produceFunc, $lang = null) {
         // Save current site language
         $originalLanguage = Yii::$app->language;
         // Change site language to $lang

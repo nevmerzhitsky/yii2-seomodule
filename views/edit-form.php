@@ -32,19 +32,19 @@ if (!empty($seo->urlField)) {
 }
 
 foreach ($seo->languages as $lang) {
-    foreach ($seo->getMetaFields() as $meta_field_key => $meta_field_generator) {
-        $attr = $model->metaField . "[{$meta_field_key}_{$lang}]";
-        $label = $seo::keyToLabel($meta_field_key);
+    foreach ($seo::getMetaKeys() as $key) {
+        $attr = $model->metaField . "[{$lang}][{$key}]";
+        $label = $seo::keyToLabel($key);
         if (count($seo->languages) > 1) {
             $label .= ' (' . strtoupper($lang) . ')';
         }
         if ($form instanceof ActiveForm) {
-            $input = $meta_field_key == $seo::DESC_KEY ? 'textarea' : 'textInput';
+            $input = ($key == $seo::DESC_KEY) ? 'textarea' : 'textInput';
             echo $form->field($model, $attr)
                 ->label($label)
                 ->$input();
         } else {
-            $input = $meta_field_key == $seo::DESC_KEY ? 'activeTextarea' : 'activeTextInput';
+            $input = ($key == $seo::DESC_KEY) ? 'activeTextarea' : 'activeTextInput';
             echo '<div class="seo_row">';
             echo Html::activeLabel($model, $attr,
                 [
