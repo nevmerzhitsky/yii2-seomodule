@@ -47,32 +47,6 @@ class SeoModelBehavior extends Behavior {
         return $map[$key];
     }
 
-    /**
-     *
-     * @param \yii\base\Model $model
-     * @return callback @TODO Convert to standalone validator.
-     */
-    public static function metaFieldValidator ($model) {
-        return function  ($attribute, $params) use( $model) {
-            $meta = $model->{$attribute};
-
-            if (!is_array($meta)) {
-                $model->addError($attribute, 'SEO meta field should be array.');
-            } else {
-                $keys = static::getMetaKeys();
-
-                foreach ($meta as $lang => $subMeta) {
-                    foreach ($subMeta as $key => $value) {
-                        if (!in_array($key, $keys)) {
-                            $model->addError($attribute,
-                                "Unknown field '{$key}' in SEO meta field of {$lang} language.");
-                        }
-                    }
-                }
-            }
-        };
-    }
-
     /** @var string The name of the field responsible for SEO:url */
     public $urlField;
 
