@@ -56,7 +56,11 @@ public function behaviors()
     return [
         'seo' => [
             'class' => 'nevmerzhitsky\seomodule\SeoModelBehavior',
-            'titleProduceFunc' => 'title',
+            'title' => [
+                'produceFunc' => 'title',
+                'produceMaxLength' => 150,
+                'overrideByDb' => false
+            ],
             'descriptionProduceFunc' => 'short_desc',
             'keysProduceFunc' => function ($model) {
                 /* @var $model self|\yii\db\ActiveRecord */

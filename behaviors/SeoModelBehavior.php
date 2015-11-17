@@ -45,11 +45,14 @@ class SeoModelBehavior extends Behavior {
      */
     public $urlProduceField = 'title';
 
-    /**
-     *
-     * @var string|callable PHP-expression that generates field SEO:title
-     */
-    public $titleProduceFunc;
+    public $title = [
+        /** @var string|callable PHP-expression that generates field SEO:title */
+        'produceFunc' => null,
+        /** @var integer The maximum length of the field Title */
+        'produceMaxLength' => 70,
+        /** @var boolean If true then a produced value will fully overridden by a content from DB */
+        'overrideByDb' => true
+    ];
 
     /** @var string|callable PHP-expression that generates field SEO:desciption */
     public $descriptionProduceFunc;
@@ -69,9 +72,6 @@ class SeoModelBehavior extends Behavior {
 
     /** @var integer The maximum length of the field SEO:url */
     public $maxUrlLength = 70;
-
-    /** @var integer The maximum length of the field Title */
-    public $maxTitleLength = 70;
 
     /** @var integer The maximum length of the field Description */
     public $maxDescLength = 130;
@@ -250,7 +250,8 @@ class SeoModelBehavior extends Behavior {
     private function _applyMaxLength ($key, $lang) {
         $value = trim($this->_getMetaFieldVal($key, $lang));
         if ($key === self::TITLE_KEY) {
-            $max = $this->maxTitleLength;
+            // @TODO Call only for produce content.
+            $max = $this->title['produceMaxLength'];
         } elseif ($key === self::DESC_KEY) {
             $max = $this->maxDescLength;
         } else {
@@ -329,7 +330,7 @@ class SeoModelBehavior extends Behavior {
      */
     public function getMetaFields () {
         return [
-            static::TITLE_KEY => $this->titleProduceFunc,
+            static::TITLE_KEY => $this->title['produceFunc'],
             static::DESC_KEY => $this->descriptionProduceFunc,
             static::KEYS_KEY => $this->keysProduceFunc
         ];
