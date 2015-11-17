@@ -9,7 +9,6 @@ use Yii;
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
 use yii\db\Query;
-use yii\helpers\Url;
 use yii\validators\UniqueValidator;
 use yii\validators\Validator;
 

@@ -120,7 +120,7 @@ class SeoViewBehavior extends Behavior {
             $view->registerMetaTag(
                 [
                     'name' => $name,
-                    'content' => Html::encode(static::normalizeStr($value))
+                    'content' => static::normalizeStr($value)
                 ], "seo-{$name}");
         }
 
