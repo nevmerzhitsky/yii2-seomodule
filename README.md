@@ -1,26 +1,39 @@
-yii2-seomodule
-========
+# yii2-seomodule
+
 Add ability to edit content of SEO-oriented HTML tags and attributes. Also add ability to configure redirection from any route to another with 301 status. And more SEO-oriented functions.
 
 Highly inspired by https://github.com/demisang/yii2-seo and https://github.com/Amirax/yii2-seo-tools.
 
-Installation
-------------
-Add to composer.json in your project
-```json
-{
-    "require":
-    {
-        "nevmerzhitsky/yii2-seomodule": "dev-master"
-    }
-}
+## Installation
+
+The preferred way to install this extension is through [composer](http://getcomposer.org/download/).
+
+Either run
+
 ```
-then run command
+php composer.phar require nevmerzhitsky/yii2-seomodule "*"
+```
+
+or add
+
+```json
+"nevmerzhitsky/yii2-seomodule": "*"
+```
+
+to the require section of your `composer.json` file. Then run command
+
 ```code
 php composer.phar update
 ```
-Configuration
--------------
+
+After installation extension run migration:
+
+```code
+./yii migrate --migrationPath="@vendor/nevmerzhitsky/yii2-seomodule/migrations"
+```
+
+## Configuration of demisang/yii2-seo
+
 frontend/config/main.php
 ```php
 return [
@@ -82,8 +95,8 @@ In main layout:
 </head>
 ```
 
-Usage
------
+## Usage
+
 In "view" template for a model:
 ```php
 // Setup title and meta tags of the current page by the model.
@@ -107,4 +120,50 @@ $this->beginContent('@app/vendor/nevmerzhitsky/yii2-seomodule/views/edit-form.ph
     ]);
 $this->endContent();
 ?>
+```
+
+## Configuration and using of the Amirax/yii2-seo-tools
+
+### SEO Meta
+In components configuration add the following
+```php
+'components' => [
+    'seo' => [
+        'class' => 'nevmerzhitsky\seomodule\Meta'
+    ]
+    ...
+]
+```
+
+And add SEO extension to bootstrap
+```php
+'bootstrap' => ['log', 'seo']
+```
+
+Extension will automatically load the correct row from the database using the currently
+running and params.You can optionally override data by specifying them in a parameter array
+```php
+Yii::$app->seo->title = 'Page title';
+Yii::$app->seo->metakeys = 'seo,yii2,extension';
+Yii::$app->seo->metadesc = 'Page meta description';
+Yii::$app->seo->tags['og:type'] = 'article';
+```
+
+You can set the templates for tags. For example:
+```php
+Yii::$app->seo->setVar('USER_NAME', 'Smith');
+Yii::$app->seo->tags['og:title'] = 'Hello %USER_NAME%';
+```
+
+Default variables:
+* %HOME_URL%       - Homepage url
+* %CANONICAL_URL%  - Canonical URL for current page
+* %LOCALE%         - Site locale
+
+### SEO Redirect
+For enabling SEO Redirect add to configuration file 
+```php
+'errorHandler' => [
+    'class' => 'nevmerzhitsky\seomodule\Redirect',
+],
 ```
