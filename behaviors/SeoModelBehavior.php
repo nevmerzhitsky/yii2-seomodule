@@ -63,7 +63,7 @@ class SeoModelBehavior extends Behavior {
     /**
      *
      * @var string The name of the resulting field, which will be stored in a
-     *      serialized form of all SEO-parameters
+     *      JSON form of all SEO-parameters
      */
     public $metaField;
 
@@ -172,8 +172,8 @@ class SeoModelBehavior extends Behavior {
             // Loop through all the languages available, it is often only one
             foreach ($this->languages as $lang) {
                 // Loop through the fields and cut the long strings to set allowed length
-                foreach ($this->getMetaFields() as $meta_param_key => $meta_param_value_generator) {
-                    $this->_applyMaxLength($meta_param_key, $lang);
+                foreach ($this->getMetaFields() as $key => $valueGenerator) {
+                    $this->_applyMaxLength($key, $lang);
                 }
             }
         }
@@ -249,6 +249,7 @@ class SeoModelBehavior extends Behavior {
      */
     private function _applyMaxLength ($key, $lang) {
         $value = trim($this->_getMetaFieldVal($key, $lang));
+
         if ($key === self::TITLE_KEY) {
             // @TODO Call only for produce content.
             $max = $this->title['produceMaxLength'];
@@ -269,19 +270,19 @@ class SeoModelBehavior extends Behavior {
         $model = $this->owner;
         $this->beforeValidate();
 
+        // Unless specified meta-field, then we will not save
         if (empty($this->metaField)) {
-            // Unless specified meta-field, then we will not save
             return;
         }
 
-        // Check all the SEO field and populate them with data, if specified by
-        // the user - leave as is, if there is no - generate
+        // Check all the SEO field and populate them with data, if specified by the user -
+        // leave as is, if there is no - generate
         $this->_fillMeta();
 
         $meta = $model->{$this->metaField};
 
-        // Save all data in a serialized form
-        $model->{$this->metaField} = serialize($meta);
+        // Save all data in a JSON form.
+        $model->{$this->metaField} = json_encode($meta);
     }
 
     /**
@@ -289,21 +290,17 @@ class SeoModelBehavior extends Behavior {
      * In their absence, they will be generated.
      */
     private function _fillMeta () {
-        // Loop through all the languages available, it is often only one
         foreach ($this->languages as $lang) {
-            // Loop through the meta-fields and fill them in the absence of
-            // complete data
-            foreach ($this->getMetaFields() as $meta_params_key => $meta_param_value_generator) {
-                $meta_params_val = $this->_getMetaFieldVal($meta_params_key, $lang);
-                if (empty($meta_params_val) && $meta_param_value_generator !== null) {
+            // Loop through the meta-fields and fill them in the absence of complete data.
+            foreach ($this->getMetaFields() as $key => $valueGenerator) {
+                $value = $this->_getMetaFieldVal($key, $lang);
+                if (empty($value) && $valueGenerator !== null) {
                     // Get value from the generator
-                    $meta_params_val = $this->_getProduceFieldValue($meta_param_value_generator,
-                        $lang);
-                    $this->_setMetaFieldVal($meta_params_key, $lang,
-                        SeoViewBehavior::normalizeStr($meta_params_val));
+                    $value = $this->_getProduceFieldValue($valueGenerator, $lang);
+                    $this->_setMetaFieldVal($key, $lang, SeoViewBehavior::normalizeStr($value));
                 }
                 // We verify that the length of the string in the normal
-                $this->_applyMaxLength($meta_params_key, $lang);
+                $this->_applyMaxLength($key, $lang);
             }
         }
     }
@@ -313,7 +310,7 @@ class SeoModelBehavior extends Behavior {
 
         if (!empty($this->metaField)) {
             // Unpack meta-params
-            $meta = @unserialize($model->{$this->metaField});
+            $meta = json_decode($model->{$this->metaField}, true);
             if (!is_array($meta)) {
                 $meta = [];
             }
@@ -343,14 +340,16 @@ class SeoModelBehavior extends Behavior {
      *            key TITLE_KEY, DESC_KEY or KEYS_KEY
      * @param string $lang
      *            language
-     *
      * @return string|null
      */
     private function _getMetaFieldVal ($key, $lang) {
-        $param = $key . '_' . $lang;
         $meta = $this->owner->{$this->metaField};
 
-        return is_array($meta) && isset($meta[$param]) ? $meta[$param] : null;
+        if (!is_array($meta) || !isset($meta[$lang]) || !isset($meta[$lang][$key])) {
+            return null;
+        }
+
+        return $meta[$lang][$key];
     }
 
     /**
@@ -365,13 +364,16 @@ class SeoModelBehavior extends Behavior {
      */
     private function _setMetaFieldVal ($key, $lang, $value) {
         $model = $this->owner;
-        $param = $key . '_' . $lang;
         $meta = $model->{$this->metaField};
         if (!is_array($meta)) {
             $meta = [];
         }
 
-        $meta[$param] = (string) $value;
+        if (!isset($meta[$lang])) {
+            $meta[$lang] = [];
+        }
+
+        $meta[$lang][$key] = (string) $value;
 
         $model->{$this->metaField} = $meta;
     }
@@ -381,7 +383,6 @@ class SeoModelBehavior extends Behavior {
      *
      * @param string|null $lang
      *            language, which requires meta-data
-     *
      * @return array
      */
     public function getSeoData ($lang = null) {
@@ -389,26 +390,23 @@ class SeoModelBehavior extends Behavior {
             $lang = Yii::$app->language;
         }
 
-        $buffer = [];
-
+        // Check that all meta-fields were filled with the values.
         if (!empty($this->metaField)) {
-            // Check that all meta-fields were filled with the values
             $this->_fillMeta();
         }
-
-        // If meta stored in a model, then refund the value of the model fields,
-        // otherwise will generate data on the fly
-        $getValMethodName = !empty($this->metaField) ? '_getMetaFieldVal' : '_getProduceFieldValue';
-
-        foreach ($this->getMetaFields() as $meta_params_key => $meta_param_value_generator) {
-            // Choosing what parameters are passed to the function get the
-            // value: the name of the field or function-generator
-            $getValMethodParam = !empty($this->metaField) ? $meta_params_key : $meta_param_value_generator;
-            // Directly receiving the value of any meta-field of the model or
-            // generate it
-            $buffer[$meta_params_key] = $this->$getValMethodName($getValMethodParam, $lang);
+        var_dump('$this->metaField', $this->owner->{$this->metaField});
+        $buffer = [];
+        foreach ($this->getMetaFields() as $key => $valueGenerator) {
+            // If meta stored in a model, then refund the value of the model fields, otherwise will
+            // generate data on the fly
+            if (!empty($this->metaField)) {
+                $buffer[$key] = $this->_getMetaFieldVal($key, $lang);
+            } else {
+                $buffer[$key] = $this->_getProduceFieldValue($valueGenerator, $lang);
+            }
         }
-
+        var_dump('$buffer', $buffer);
+        die();
         return $buffer;
     }
 
