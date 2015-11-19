@@ -3,11 +3,11 @@
  * @link Inspired by https://github.com/demisang/yii2-seo/
  */
 namespace nevmerzhitsky\seomodule\behaviors;
-
 use Yii;
 use yii\base\Behavior;
 use yii\web\View;
 use yii\helpers\Html;
+use nevmerzhitsky\seomodule\Meta;
 
 /**
  * Add ability of view to setup page title and meta-tags for SEO.
@@ -22,6 +22,7 @@ class SeoViewBehavior extends Behavior {
      * @return string
      */
     static public function normalizeStr ($str) {
+        // @TODO Move back to Model bahavior.
         $str = strip_tags($str);
         // Replace many various sequential space chars to one.
         $str = trim(preg_replace('/[\s]+/isu', ' ', $str));
@@ -40,25 +41,23 @@ class SeoViewBehavior extends Behavior {
     /**
      * Set meta-params for current page.
      *
-     * @param array|SeoModelBehavior|string $title
-     *            - array: ["title"=>"Page
-     *            Title", "desc"=>"Page Descriptions", "keywords"=>"Page, Keywords"]
-     *            - string: used as title of page
-     * @param string $desc
-     *            Meta description
-     * @param string|string[] $keywords
-     *            Meta keywords string or array of
-     *            keywords.
+     * @param array|SeoModelBehavior|string $title - array: ["title"=>"Page
+     *        Title", "desc"=>"Page Descriptions", "keywords"=>"Page, Keywords"]
+     *        - string: used as title of page
+     * @param string $desc Meta description
+     * @param string|string[] $keywords Meta keywords string or array of
+     *        keywords.
      * @return static
      */
-    public function setSeoData ($title, $desc = '', $keywords = '') {
+    private function setSeoData ($title, $desc = '', $keywords = '') {
+        // @TODO DELETE -- REPLACED BY Meta class.
         // @TODO Get metaRobots from model also.
         if ($title instanceof SeoModelBehavior) {
             $meta = $title->getSeoData();
             $data = [
-                'title' => $meta[SeoModelBehavior::TITLE_KEY],
-                'desc' => $meta[SeoModelBehavior::DESC_KEY],
-                'keywords' => $meta[SeoModelBehavior::KEYS_KEY]
+                'title' => $meta[Meta::KEY_TITLE],
+                'desc' => $meta[Meta::KEY_DESCRIPTION],
+                'keywords' => $meta[Meta::KEY_KEYWORDS]
             ];
         } elseif (is_string($title)) {
             $data = [
@@ -84,10 +83,10 @@ class SeoViewBehavior extends Behavior {
     /**
      * Set robots meta-tag.
      *
-     * @param string $content
-     *            Content of the meta-tag.
+     * @param string $content Content of the meta-tag.
      */
-    public function setMetaRobots ($content = 'noindex, follow') {
+    private function setMetaRobots ($content = 'noindex, follow') {
+        // @TODO Move to Meta class.
         $this->_metaRobots = trim($content);
     }
 
@@ -100,7 +99,8 @@ class SeoViewBehavior extends Behavior {
      *
      * @return string
      */
-    public function renderMetaTags () {
+    private function renderMetaTags () {
+        // @TODO DELETE -- REPLACED BY Meta class.
         /* @var $view View */
         $view = $this->owner;
 
@@ -122,7 +122,7 @@ class SeoViewBehavior extends Behavior {
                 ], "seo-{$name}");
         }
 
-        // @TODO Add title template to params of the behaviour.
+        // @TODO Add title template to params of the behavior.
         if (!empty($this->_pageTitle)) {
             $title = $this->_pageTitle . ' - ' . Yii::$app->name;
         } else {

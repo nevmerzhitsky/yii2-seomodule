@@ -3,13 +3,13 @@
  * @link Inspired by https://github.com/demisang/yii2-seo/
  */
 namespace nevmerzhitsky\seomodule\behaviors;
-
 use Yii;
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
 use yii\db\Query;
 use yii\validators\UniqueValidator;
 use yii\validators\Validator;
+use nevmerzhitsky\seomodule\Meta;
 
 /**
  * Behavior to work with SEO meta options
@@ -18,9 +18,6 @@ use yii\validators\Validator;
  * @property ActiveRecord $owner
  */
 class SeoModelBehavior extends Behavior {
-    const TITLE_KEY = 'title';
-    const DESC_KEY = 'desc';
-    const KEYS_KEY = 'keys';
 
     /** @var string[][] Saved actions of controllers for SEO:url stop list */
     private static $_controllersActions = [];
@@ -31,17 +28,17 @@ class SeoModelBehavior extends Behavior {
      */
     public static function getMetaKeys () {
         return [
-            static::TITLE_KEY,
-            static::DESC_KEY,
-            static::KEYS_KEY
+            Meta::KEY_TITLE,
+            Meta::KEY_DESCRIPTION,
+            Meta::KEY_KEYWORDS
         ];
     }
 
     public static function keyToLabel ($key) {
         static $map = [
-            self::TITLE_KEY => 'Title',
-            self::DESC_KEY => 'Description',
-            self::KEYS_KEY => 'Keywords'
+            Meta::KEY_TITLE => 'Title',
+            Meta::KEY_DESCRIPTION => 'Description',
+            Meta::KEY_KEYWORDS => 'Keywords'
         ];
 
         return $map[$key];
@@ -286,10 +283,10 @@ class SeoModelBehavior extends Behavior {
     private function _applyMaxLength ($key, $lang) {
         $value = trim($this->_getDbValue($key, $lang));
 
-        if ($key === self::TITLE_KEY) {
+        if ($key === Meta::KEY_TITLE) {
             // @TODO Call only for produce content.
             $max = $this->title['produceMaxLength'];
-        } elseif ($key === self::DESC_KEY) {
+        } elseif ($key === Meta::KEY_DESCRIPTION) {
             $max = $this->maxDescLength;
         } else {
             $max = $this->maxKeysLength;
@@ -314,7 +311,7 @@ class SeoModelBehavior extends Behavior {
         $meta = $model->{$this->metaField};
 
         // Save all data in a JSON form.
-        $meta = ! empty($meta) ? json_encode($meta) : null;
+        $meta = !empty($meta) ? json_encode($meta) : null;
         $model->{$this->metaField} = $meta;
     }
 
@@ -360,19 +357,17 @@ class SeoModelBehavior extends Behavior {
      */
     public function getMetaFields () {
         return [
-            static::TITLE_KEY => $this->title['produceFunc'],
-            static::DESC_KEY => $this->descriptionProduceFunc,
-            static::KEYS_KEY => $this->keysProduceFunc
+            Meta::KEY_TITLE => $this->title['produceFunc'],
+            Meta::KEY_DESCRIPTION => $this->descriptionProduceFunc,
+            Meta::KEY_KEYWORDS => $this->keysProduceFunc
         ];
     }
 
     /**
      * Returns the value of the $key SEO:meta for the specified $lang language
      *
-     * @param string $key
-     *            key TITLE_KEY, DESC_KEY or KEYS_KEY
-     * @param string $lang
-     *            language
+     * @param string $key key KEY_TITLE, KEY_DESCRIPTION or KEY_KEYWORDS
+     * @param string $lang language
      * @return string|null
      */
     private function _getDbValue ($key, $lang) {
@@ -388,12 +383,9 @@ class SeoModelBehavior extends Behavior {
     /**
      * Sets the value of $key in SEO:meta on the specified $lang language
      *
-     * @param string $key
-     *            key TITLE_KEY, DESC_KEY or KEYS_KEY
-     * @param string $lang
-     *            language
-     * @param string $value
-     *            field value
+     * @param string $key key KEY_TITLE, KEY_DESCRIPTION or KEY_KEYWORDS
+     * @param string $lang language
+     * @param string $value field value
      */
     private function _setDbValue ($key, $lang, $value) {
         $model = $this->owner;
@@ -414,8 +406,7 @@ class SeoModelBehavior extends Behavior {
     /**
      * Returns the metadata for this model
      *
-     * @param string|null $lang
-     *            language, which requires meta-data
+     * @param string|null $lang language, which requires meta-data
      * @return array
      */
     public function getSeoData ($lang = null) {
@@ -440,15 +431,6 @@ class SeoModelBehavior extends Behavior {
         }
 
         return $buffer;
-    }
-
-    /**
-     * Return instance of current behavior
-     *
-     * @return SeoModelBehavior $this
-     */
-    public function getSeoBehavior () {
-        return $this;
     }
 
     /**

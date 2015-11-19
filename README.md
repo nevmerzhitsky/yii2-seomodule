@@ -34,17 +34,26 @@ After installation extension run migration:
 
 ## Configuration of demisang/yii2-seo
 
-frontend/config/main.php
+In components configuration add the following:
 ```php
-return [
+[
     'components' => [
+        'seo' => [
+            'class' => 'nevmerzhitsky\seomodule\Meta'
+        ],
         'view' => [
             'as seo' => [
                 'class' => 'nevmerzhitsky\seomodule\SeoViewBehavior',
             ]
         ],
     ],
+    ...
 ];
+```
+
+And add SEO extension to bootstrap:
+```php
+'bootstrap' => ['log', 'seo']
 ```
 
 In model file add seo model behavior:
@@ -81,38 +90,25 @@ public function behaviors()
 }
 ```
 
-PHPdoc for model:
-```php
-/**
- * @property array $seoData
- * @method array getSeoData($lang = null) Metadata for this model
- * @method \nevmerzhitsky\seomodule\SeoModelBehavior getSeoBehavior()
- */
-```
 In main layout:
 ```php
 <head>
-    <?php echo $this->renderMetaTags(); ?>
+    <title><?php echo Html::encode(Yii::$app->seo->title); ?></title>
+<?php $this->head(); ?>
     ...
 </head>
 ```
 
 ## Usage
 
-In "view" template for a model:
+In a controller action for the model ("view" for example):
 ```php
-// Setup title and meta tags of the current page by the model.
-$this->setSeoData($model->getSeoBehavior());
-// Set robots meta-tag content of the page.
-$this->setMetaRobots('noindex, nofollow');
-```
-Or in a controller:
-```php
-Yii::$app->view->setSeoData($model->getSeoBehavior());
-Yii::$app->view->setMetaRobots('noindex, nofollow');
+Yii::$app->seo->registerModel($model);
 ```
 
-Render SEO:url and SEO:meta fields in the "_form.php" file:
+You can register several models in one action. If these models have 'seo' behavior, then SEO data will combined from all of them in registration order.
+
+In admin/manager site you can add fields for editing SEO data of a model ("_form.php" template):
 ```php
 <?php
 $this->beginContent('@app/vendor/nevmerzhitsky/yii2-seomodule/views/edit-form.php',
@@ -127,20 +123,6 @@ $this->endContent();
 ## Configuration and using of the Amirax/yii2-seo-tools
 
 ### SEO Meta
-In components configuration add the following
-```php
-'components' => [
-    'seo' => [
-        'class' => 'nevmerzhitsky\seomodule\Meta'
-    ]
-    ...
-]
-```
-
-And add SEO extension to bootstrap
-```php
-'bootstrap' => ['log', 'seo']
-```
 
 Extension will automatically load the correct row from the database using the currently
 running and params.You can optionally override data by specifying them in a parameter array

@@ -1,20 +1,38 @@
 <?php
 namespace nevmerzhitsky\seomodule;
+use Yii;
 use yii\web\View;
 use yii\base\Component;
 use yii\helpers\Url;
 use yii\helpers\ArrayHelper;
 use nevmerzhitsky\seomodule\models\SeoMeta;
+use yii\base\Model;
 
 /**
  * Meta tags
  *
  * @package nevmerzhitsky\seomodule
  * @author Max Voronov <v0id@list.ru>
+ *
+ * @property string
  */
 class Meta extends Component {
 
-    protected $_view = null;
+    const KEY_TITLE = 'title';
+
+    const KEY_DESCRIPTION = 'description';
+
+    const KEY_KEYWORDS = 'keywords';
+
+    public $title = '';
+
+    protected $_fixedTitle = false;
+
+    /**
+     *
+     * @var yii\web\View
+     */
+    protected $_view;
 
     protected $_routeMetaData = [];
 
@@ -25,6 +43,12 @@ class Meta extends Component {
     protected $_userMetaData = [];
 
     protected $_variables = [];
+
+    /**
+     *
+     * @var unknown
+     */
+    protected $_models = [];
 
     /**
      * Init component
@@ -57,6 +81,19 @@ class Meta extends Component {
         return $this;
     }
 
+    public function canNotChangeTitle ($value = true) {
+        $this->_fixedTitle = !empty($value);
+    }
+
+    /**
+     * Add model to list of current page models.
+     *
+     * @param Model $model
+     */
+    public function registerModel (Model $model) {
+        $this->_models[] = $model;
+    }
+
     /**
      * Apply metatags to page
      *
@@ -64,15 +101,59 @@ class Meta extends Component {
      */
     protected function _applyMeta ($event) {
         $this->_view = $event->sender;
-        $this->_getMetaData(Yii::$app->requestedRoute,
-            Yii::$app->requestedParams);
-        $data = ArrayHelper::merge($this->_defaultMetaData,
-            $this->_routeMetaData, $this->_paramsMetaData, $this->_userMetaData);
+
+        $data = $this->_getMetaDataFromModels();
+        $data = $this->_combineSeveralDataToOne($data);
+
+        // $this->_getMetaData(Yii::$app->requestedRoute,
+        // Yii::$app->requestedParams);
+        // $data = ArrayHelper::merge($this->_defaultMetaData,
+        // $this->_routeMetaData, $this->_paramsMetaData, $this->_userMetaData);
         $this->_prepareVars()
             ->_setTitle($data)
             ->_setMeta($data)
-            ->_setRobots($data)
-            ->_setTags($data);
+            ->_setRobots($data);
+        // ->_setTags($data);
+    }
+
+    protected function _getMetaDataFromModels () {
+        $result = [];
+
+        /** @var $model Model */
+        /** @var $beh \nevmerzhitsky\seomodule\behaviors\SeoModelBehavior */
+        foreach ($this->_models as $model) {
+            $beh = $model->getBehavior('seo');
+
+            if (is_null($beh)) {
+                continue;
+            }
+
+            // @TODO More complex work with site language?
+            $lang = Yii::$app->language;
+            $result[] = $beh->getSeoData($lang);
+        }
+
+        return $result;
+    }
+
+    protected function _combineSeveralDataToOne (array $dataOfSeveral) {
+        $result = [];
+
+        foreach ($dataOfSeveral as $data) {
+            $result = array_merge_recursive($result, $data);
+        }
+
+        // Convert arrays to string.
+        $result = array_map(
+            function  ($v) {
+                if (is_array($v)) {
+                    $v = implode(', ', $v);
+                }
+
+                return $v;
+            }, $result);
+
+        return $result;
     }
 
     /**
@@ -87,20 +168,40 @@ class Meta extends Component {
                 'CANONICAL_URL' => Url::canonical(),
                 'LOCALE' => Yii::$app->formatter->locale
             ]);
+
         return $this;
     }
 
     /**
-     * Set tag <title>
+     * Replace vars placeholders to values in string.
+     *
+     * @param string $str
+     * @return string
+     */
+    protected function _substituteVars ($str) {
+        return str_replace(array_keys($this->_variables), $this->_variables,
+            trim($str));
+    }
+
+    /**
+     * Set value for <title> tag.
      *
      * @param array $data
      * @return $this
      */
     protected function _setTitle ($data) {
-        $data['title'] = str_replace(array_keys($this->_variables),
-            $this->_variables, trim($data['title']));
-        $this->setVar('SEO_TITLE', $data['title']);
-        $this->_view->title = $data['title'];
+        $data[static::KEY_TITLE] = $this->_substituteVars(
+            $data[static::KEY_TITLE]);
+
+        if (empty($data[static::KEY_TITLE]) ||
+             ($this->_fixedTitle && !empty($this->_view->title))) {
+            $data[static::KEY_TITLE] = $this->_view->title;
+        }
+
+        $this->setVar('SEO_TITLE', $data[static::KEY_TITLE]);
+
+        $this->title = $data[static::KEY_TITLE];
+
         return $this;
     }
 
@@ -111,24 +212,31 @@ class Meta extends Component {
      * @return $this
      */
     protected function _setMeta ($data) {
-        $data['metakeys'] = str_replace(array_keys($this->_variables),
-            $this->_variables, trim($data['metakeys']));
-        $data['metakeys'] = preg_replace('|,( )+|', ',', $data['metakeys']);
-        $this->_view->registerMetaTag(
-            [
-                'name' => 'keywords',
-                'content' => $data['metakeys']
-            ]);
-        $this->setVar('SEO_METAKEYS', $data['metakeys']);
+        static $names = [
+            'keywords' => self::KEY_KEYWORDS,
+            'description' => self::KEY_DESCRIPTION
+        ];
 
-        $data['metadesc'] = str_replace(array_keys($this->_variables),
-            $this->_variables, trim($data['metadesc']));
-        $this->_view->registerMetaTag(
-            [
-                'name' => 'description',
-                'content' => $data['metadesc']
-            ]);
-        $this->setVar('SEO_METADESC', $data['metadesc']);
+        foreach (array_unique(array_keys($names)) as $key) {
+            $data[$key] = $this->_substituteVars($data[$key]);
+        }
+
+        $data[static::KEY_KEYWORDS] = preg_replace('%,[ ]+%', ',',
+            $data[static::KEY_KEYWORDS]);
+
+        foreach ($names as $name => $key) {
+            $var = 'SEO_META_' . strtoupper($name);
+
+            if (!empty($data[$key])) {
+                $this->_view->registerMetaTag(
+                    [
+                        'name' => $name,
+                        'content' => $data[$key]
+                    ]);
+            }
+
+            $this->setVar($var, $data[$key]);
+        }
 
         return $this;
     }
@@ -140,11 +248,13 @@ class Meta extends Component {
      * @return $this
      */
     protected function _setRobots ($data) {
-        $this->_view->registerMetaTag(
-            [
-                'name' => 'robots',
-                'content' => $data['robots']
-            ], 'seo-robots');
+        if (!empty($data['robots'])) {
+            $this->_view->registerMetaTag(
+                [
+                    'name' => 'robots',
+                    'content' => $data['robots']
+                ], 'seo-robots');
+        }
 
         return $this;
     }
@@ -162,9 +272,10 @@ class Meta extends Component {
 
         if (!empty($tags)) {
             foreach ($tags as $tagName => $tagProp) {
-                if (!empty($tagProp) && is_string($tagProp))
-                    $tagProp = str_replace(array_keys($this->_variables),
-                        $this->_variables, $tagProp);
+                if (!empty($tagProp) && is_string($tagProp)) {
+                    $tagProp = $this->_substituteVars($tagProp);
+                }
+
                 $this->_view->registerMetaTag(
                     [
                         'property' => $tagName,

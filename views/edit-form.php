@@ -5,6 +5,7 @@
  */
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
+use nevmerzhitsky\seomodule\Meta;
 
 /* @var $this yii\web\View */
 /* @var $model \yii\db\ActiveRecord */
@@ -39,12 +40,12 @@ foreach ($seo->languages as $lang) {
             $label .= ' (' . strtoupper($lang) . ')';
         }
         if ($form instanceof ActiveForm) {
-            $input = ($key == $seo::DESC_KEY) ? 'textarea' : 'textInput';
+            $input = ($key == Meta::KEY_DESCRIPTION) ? 'textarea' : 'textInput';
             echo $form->field($model, $attr)
                 ->label($label)
                 ->$input();
         } else {
-            $input = ($key == $seo::DESC_KEY) ? 'activeTextarea' : 'activeTextInput';
+            $input = ($key == Meta::KEY_DESCRIPTION) ? 'activeTextarea' : 'activeTextInput';
             echo '<div class="seo_row">';
             echo Html::activeLabel($model, $attr,
                 [
