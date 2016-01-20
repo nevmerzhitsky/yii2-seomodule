@@ -13,9 +13,7 @@ class m151117_000000_create_meta_table extends Migration {
                 'metakeys' => $this->string(),
                 'metadesc' => $this->string(),
                 'tags' => $this->string(),
-                'robots' => $this->integer()
-                    ->notNull()
-                    ->default(0)
+                'robots' => $this->integer()->notNull()->defaultValue(0)
             ]);
         $this->createIndex('idx_route', '{{%seo_meta}}', 'route', true);
         $this->createIndex('idx_params', '{{%seo_meta}}', 'params', true);
